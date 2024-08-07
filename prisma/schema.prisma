@@ -1,0 +1,87 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id Int @id @default(autoincrement())
+  name String
+  username String @unique
+  email String @unique
+  password String
+
+  posts Post[]
+  votes Vote[]
+  comments Comment[]
+  notifications Notifications[]
+}
+
+model Post {
+  id Int @id @default(autoincrement())
+  text String
+  options Option[]
+  comments Comment[]
+  vote Vote[]
+  createdAt DateTime @default(now())
+  upvote Int @default(0)
+  downvote Int @default(0)
+
+
+  user_id Int
+  user User @relation(fields: [user_id], references: [id])
+}
+
+model Option {
+  id Int @id @default(autoincrement())
+  text String
+  post_id Int 
+  post Post @relation(fields: [post_id], references: [id])
+  votes Vote[]
+}
+
+model Vote {
+  id        Int     @id @default(autoincrement())
+  option_id  Int
+  option    Option  @relation(fields: [option_id], references: [id])
+  user_id    Int
+  user      User    @relation(fields: [user_id], references: [id])
+  post_id    Int
+  post      Post     @relation(fields: [post_id], references: [id])
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  text      String
+  postId    Int
+  post      Post     @relation( fields: [postId], references: [id])
+  user_id   Int
+  user      User     @relation( fields: [user_id], references: [id])
+  upvote    Int      @default(0)
+  downvote  Int      @default(0)
+}
+
+model Notifications{
+  id          Int      @id @default(autoincrement())
+  text        String
+  user_id     Int
+  user        User     @relation(fields: [user_id], references: [id])
+  type        NotificationsType   @default(VOTE)
+  createdAt   DateTime @default(now())
+}
+
+enum NotificationsType {
+  FOLLOW
+  COMMENT
+  UPVOTE
+  VOTE
+}
