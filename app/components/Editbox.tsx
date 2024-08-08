@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import zod from "zod";
 import axios from "axios";
-import { NextResponse } from "next/server";
 import { useSession } from "next-auth/react";
+import { revalidatePath } from "next/cache";
 
 const postSchema = zod.object({
   text: zod.string(),
@@ -27,17 +27,17 @@ const Editbox = () => {
       });
       if (parsedPost) {
         const res = await axios.post("/api/post", parsedPost);
-        console.log(res);
+        if (res) {
+          console.log(res);
 
-        setText("");
-        setOption1("");
-        setOption2("");
-        setOption3("");
-        setOption4("");
-
-        window.location.reload();
-
-        return NextResponse.json({ res });
+          setText("");
+          setOption1("");
+          setOption2("");
+          setOption3("");
+          setOption4("");
+          revalidatePath("/");
+          window.location.reload();
+        }
       }
     } catch (error) {
       console.log(error);
