@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import zod from "zod";
 import axios from "axios";
 import { useSession } from "next-auth/react";
-import { revalidatePath } from "next/cache";
 
 const postSchema = zod.object({
   text: zod.string(),
@@ -35,7 +34,6 @@ const Editbox = () => {
           setOption2("");
           setOption3("");
           setOption4("");
-          revalidatePath("/");
           window.location.reload();
         }
       }
