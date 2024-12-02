@@ -1,9 +1,15 @@
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import Prisma from "../lib/db";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 
 export const NEXT_AUTH_CONFIG = {
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -55,16 +61,65 @@ export const NEXT_AUTH_CONFIG = {
       session.user.name = token.name;
       session.user.email = token.email;
       session.user.username = token.username;
+      session.user.image = token.picture;
       return session;
     },
-    async jwt({ token, user }: any) {
+    async jwt({ token, user, profile, account }: any) {
       if (user) {
         token.id = user.id;
         token.name = user.name;
         token.email = user.email;
         token.username = user.username;
+        token.picture = user.profilePicture;
+      }
+      if (account?.provider === "google" && profile) {
+        const dbUser = await Prisma.user.findUnique({
+          where: { email: profile.email },
+        });
+        if (dbUser) {
+          token.id = dbUser?.id;
+          token.picture = profile.picture;
+          token.username = dbUser?.username;
+        }
       }
       return token;
+    },
+    async signIn({ account, profile }: any) {
+      if (account?.provider === "google") {
+        try {
+          const username = profile.email.split("@")[0];
+
+          let finalUsername = username;
+          let counter = 1;
+          while (true) {
+            const existingUser = await Prisma.user.findUnique({
+              where: { username: finalUsername },
+            });
+            if (!existingUser) break;
+            finalUsername = `${username}${counter}`;
+            counter++;
+          }
+
+          await Prisma.user.upsert({
+            where: {
+              email: profile.email,
+            },
+            update: {},
+            create: {
+              email: profile.email,
+              name: profile.name,
+              username: finalUsername,
+              profilePicture: profile.picture,
+              password: crypto.randomBytes(32).toString("hex"),
+            },
+          });
+          return true;
+        } catch (error) {
+          console.error("Error saving Google profile:", error);
+          return false;
+        }
+      }
+      return true;
     },
   },
 };

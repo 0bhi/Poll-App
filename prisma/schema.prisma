@@ -18,13 +18,34 @@ model User {
   name String
   username String @unique
   email String @unique
+  bio String @default("")
   password String
+  profilePicture String @default("https://api.dicebear.com/7.x/identicon/svg")
+  followersCount Int @default(0)
+  followingCount Int @default(0)
+  
 
   posts Post[]
   votes Vote[]
   comments Comment[]
   notifications Notifications[]
+
+  followers       Follows[]      @relation("followers")
+  following       Follows[]      @relation("following")
 }
+
+model Follows {
+  id          Int      @id @default(autoincrement())
+  follower    User     @relation("followers", fields: [followerId], references: [id])
+  followerId  Int
+  following   User     @relation("following", fields: [followingId], references: [id])  
+  followingId Int
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+}
+  
+
 
 model Post {
   id Int @id @default(autoincrement())

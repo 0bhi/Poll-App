@@ -17,7 +17,6 @@ export default function Notificationsbar() {
   useEffect(() => {
     const fetchNotifs = async (userId: string) => {
       try {
-        console.log("userID:", userId);
         const res = await axios.get("/api/notifications", {
           params: { user_id: userId },
         });

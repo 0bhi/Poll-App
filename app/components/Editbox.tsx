@@ -22,13 +22,11 @@ const Editbox = () => {
       const parsedPost = postSchema.parse({
         text: text,
         options: [option1, option2, option3, option4],
-        user_id: (session.data?.user as { id: string } | undefined)?.id,
+        user_id: `${session.data?.user?.id}` || "",
       });
       if (parsedPost) {
         const res = await axios.post("/api/post", parsedPost);
         if (res) {
-          console.log(res);
-
           setText("");
           setOption1("");
           setOption2("");

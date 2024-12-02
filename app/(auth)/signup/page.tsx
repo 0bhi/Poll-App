@@ -39,6 +39,10 @@ const Signup = () => {
     }
   };
 
+  const handleGoogleSignIn = () => {
+    signIn("google", { callbackUrl: "/" });
+  };
+
   return (
     <div className="items-center justify-center flex h-screen bg-blue-700">
       <div className="bg-blue-300 w-80 p-8 rounded-md flex flex-col gap-3 border-black-400">
@@ -79,6 +83,25 @@ const Signup = () => {
         >
           Sign Up
         </button>
+
+        <div className="flex items-center my-2">
+          <div className="flex-1 border-t border-gray-400"></div>
+          <span className="px-3 text-gray-500">or</span>
+          <div className="flex-1 border-t border-gray-400"></div>
+        </div>
+
+        <button
+          onClick={handleGoogleSignIn}
+          className="flex items-center justify-center gap-2 bg-white p-2 rounded-full border border-gray-300 hover:bg-gray-50"
+        >
+          <img
+            src="https://www.google.com/favicon.ico"
+            alt="Google"
+            className="w-5 h-5"
+          />
+          <span>Continue with Google</span>
+        </button>
+
         <div className="text-center text-gray-500">
           Already have an Account?{" "}
           <button

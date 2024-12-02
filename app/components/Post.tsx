@@ -2,6 +2,10 @@ import React from "react";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useSession } from "next-auth/react";
+import { FaRegComment } from "react-icons/fa";
+import { BiDownvote, BiUpvote } from "react-icons/bi";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 interface PostType {
   id: string;
@@ -12,9 +16,10 @@ interface PostType {
 
 const Post = ({ data }: { data: PostType }) => {
   const session: any = useSession();
-
+  const router = useRouter();
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
+  const [profilePicUrl, setProfilePicUrl] = useState("");
   const [votes, setVotes] = useState([0, 0, 0, 0]);
   const [isClicked, setIsClicked] = useState(false);
   const [clickedOption, setClickedOption] = useState(null);
@@ -29,6 +34,13 @@ const Post = ({ data }: { data: PostType }) => {
 
       setName(userRes.data.name);
       setUsername(userRes.data.username);
+      if (userRes.data.profilePicture) {
+        setProfilePicUrl(userRes.data.profilePicture);
+      } else {
+        const defaultProfilePic = "https://api.dicebear.com/7.x/identicon/svg";
+
+        setProfilePicUrl(defaultProfilePic);
+      }
 
       if (session) {
         const voteRes = await axios.get("/api/votes/vote", {
@@ -80,25 +92,57 @@ const Post = ({ data }: { data: PostType }) => {
   };
 
   return (
-    <div className="bg-white border-b-2 border-black p-2">
-      <div className="flex gap-2 pl-2">
-        <h1>{name}</h1>
-        <p className="text-gray-400 ">{"@" + username}</p>
+    <div className="flex bg-white border-b-2 border-black p-2 space-x-2">
+      <div className="w-12 h-12 rounded-full overflow-hidden">
+        <Image
+          src={profilePicUrl}
+          alt="ProfilePic"
+          className="object-cover scale-125"
+          width={64}
+          height={64}
+        />
       </div>
-      <div className="p-2">{text}</div>
-      <div className="grid grid-cols-2 gap-2">
-        {options.map((option: any, index: number) => (
-          <button
-            key={option.id}
-            className={` ${
-              option.id == clickedOption ? "bg-blue-700" : "bg-blue-500"
-            } text-white rounded-md p-2`}
-            onClick={() => onChoice(option, index)}
-            disabled={isClicked || session.status === "unauthenticated"}
-          >
-            {`${option.text} ${votes[index]}`}
+
+      <div onClick={() => router.push("/post")} className="w-full">
+        <div className="flex gap-2 pl-2">
+          <h1>{name}</h1>
+          <p className="text-gray-400 ">{"@" + username}</p>
+        </div>
+        <div className="p-2">{text}</div>
+        <div className="grid grid-cols-2 gap-2">
+          {options.map((option: any, index: number) => (
+            <button
+              key={option.id}
+              className={` ${
+                option.id == clickedOption ? "bg-blue-700" : "bg-blue-500"
+              } text-white rounded-md p-2`}
+              onClick={(event) => {
+                event.stopPropagation();
+                onChoice(option, index);
+              }}
+              disabled={isClicked || session.status === "unauthenticated"}
+            >
+              {`${option.text} ${votes[index]}`}
+            </button>
+          ))}
+        </div>
+        <div className="flex mt-2 mx-2 p-2 justify-around">
+          <button className="text-blue-700 text-xl">
+            <BiUpvote />
           </button>
-        ))}
+          <button className="text-red-700 text-xl">
+            <BiDownvote />
+          </button>
+          <button
+            onClick={() => {
+              console.log("clicked");
+              router.push("/post");
+            }}
+            className="text-blue-700 text-xl"
+          >
+            <FaRegComment />
+          </button>
+        </div>
       </div>
     </div>
   );
