@@ -1,19 +1,33 @@
-import Homebar from "./components/Homebar";
-import Feed from "./components/Feed";
-import Notificationsbar from "./components/Notificationsbar";
+"use client";
+import Editbox from "../app/components/Editbox";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import Post from "../app/components/Post";
 
-export default function Home() {
+interface PostType {
+  id: string;
+  text: string;
+  options: any;
+  user_id: string;
+}
+
+export default function Feed() {
+  const [posts, setPosts] = useState([]);
+
+  const fetchData = async () => {
+    const res = await axios.get("/api/posts");
+    setPosts(res.data);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
   return (
-    <div className="flex h-screen overflow-hidden ">
-      <div className="w-1/4 border-r-2 border-black">
-        <Homebar />
-      </div>
-      <div className=" w-1/2 overflow-y-auto">
-        <Feed />
-      </div>
-      <div className="w-1/4">
-        <Notificationsbar />
-      </div>
+    <div className=" bg-blue-200 h-full overflow-y-auto scrollbar-hide">
+      <Editbox />
+      {posts.map((post: PostType, index) => (
+        <Post key={index} data={post} />
+      ))}
     </div>
   );
 }
