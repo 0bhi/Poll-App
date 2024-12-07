@@ -3,7 +3,12 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useSession } from "next-auth/react";
 import { FaRegComment } from "react-icons/fa";
-import { BiDownvote, BiUpvote } from "react-icons/bi";
+import {
+  BiDownvote,
+  BiSolidDownvote,
+  BiSolidUpvote,
+  BiUpvote,
+} from "react-icons/bi";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -23,6 +28,8 @@ const Post = ({ data }: { data: PostType }) => {
   const [votes, setVotes] = useState([0, 0, 0, 0]);
   const [isClicked, setIsClicked] = useState(false);
   const [clickedOption, setClickedOption] = useState(null);
+  const [upvoted, setUpvoted] = useState(false);
+  const [downvoted, setDownvoted] = useState(false);
 
   const { id, text, options, user_id } = data;
 
@@ -82,6 +89,36 @@ const Post = ({ data }: { data: PostType }) => {
       }
     } catch (error) {
       console.log(error);
+    }
+  };
+
+  const handleUpvote = async () => {
+    if (downvoted) {
+      await axios.post("/api/downvote", { id: id });
+      setDownvoted(false);
+    }
+
+    if (!upvoted) {
+      await axios.post("/api/upvote", { id: id });
+      setUpvoted(true);
+    } else {
+      await axios.post("/api/remove-upvote", { id: id });
+      setUpvoted(false);
+    }
+  };
+
+  const handleDownvote = async () => {
+    if (upvoted) {
+      await axios.post("/api/remove-upvote", { id: id });
+      setUpvoted(false);
+    }
+
+    if (!downvoted) {
+      await axios.post("/api/downvote", { id: id });
+      setDownvoted(true);
+    } else {
+      await axios.post("/api/remove-downvote", { id: id });
+      setDownvoted(false);
     }
   };
 
@@ -146,11 +183,25 @@ const Post = ({ data }: { data: PostType }) => {
           ))}
         </div>
         <div className="flex mt-2 mx-2 p-2 justify-around">
-          <button className="text-blue-700 text-xl">
-            <BiUpvote />
+          <button
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              handleUpvote();
+            }}
+            className="text-blue-700 text-xl"
+          >
+            {upvoted ? <BiSolidUpvote /> : <BiUpvote />}
           </button>
-          <button className="text-red-700 text-xl">
-            <BiDownvote />
+          <button
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              handleDownvote();
+            }}
+            className="text-red-700 text-xl"
+          >
+            {downvoted ? <BiSolidDownvote /> : <BiDownvote />}
           </button>
           <button
             onClick={() => {

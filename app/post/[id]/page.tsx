@@ -5,7 +5,12 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useSession } from "next-auth/react";
 import { FaRegBookmark } from "react-icons/fa6";
-import { BiDownvote, BiUpvote } from "react-icons/bi";
+import {
+  BiDownvote,
+  BiUpvote,
+  BiSolidUpvote,
+  BiSolidDownvote,
+} from "react-icons/bi";
 import { FiShare2 } from "react-icons/fi";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
@@ -32,7 +37,9 @@ const Post = () => {
   const [clickedOption, setClickedOption] = useState(null);
   const [post, setPost] = useState<PostType>();
   const [date, setDate] = useState("");
-  const [comments, setComments] = useState([]);
+  const [upvoted, setUpvoted] = useState(false);
+  const [downvoted, setDownvoted] = useState(false);
+  const [comment, setComment] = useState("");
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -151,6 +158,54 @@ const Post = () => {
     setVotes(updatedVotes);
   };
 
+  const handleUpvote = async () => {
+    if (downvoted) {
+      await axios.post("/api/downvote", { id: id });
+      setDownvoted(false);
+    }
+
+    if (!upvoted) {
+      await axios.post("/api/upvote", { id: id });
+      setUpvoted(true);
+    } else {
+      await axios.post("/api/remove-upvote", { id: id });
+      setUpvoted(false);
+    }
+  };
+
+  const handleDownvote = async () => {
+    if (upvoted) {
+      await axios.post("/api/remove-upvote", { id: id });
+      setUpvoted(false);
+    }
+
+    if (!downvoted) {
+      await axios.post("/api/downvote", { id: id });
+      setDownvoted(true);
+    } else {
+      await axios.post("/api/remove-downvote", { id: id });
+      setDownvoted(false);
+    }
+  };
+
+  const handleComment = async () => {
+    try {
+      console.log("inside try catch");
+      const res = await axios.post("/api/comment", {
+        postid: id,
+        comment: comment,
+        userid: session?.data.user?.id,
+      });
+      console.log("after axios");
+      if (res) {
+        setComment("");
+        console.log(res);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   return (
     <div>
       <div className="flex bg-white border-b-2 border-black p-2 space-x-2">
@@ -209,12 +264,24 @@ const Post = () => {
           <div className="text-gray-500 py-4 text-sm">{date}</div>
           <div style={{ height: "1px" }} className="bg-gray-300 " />
           <div className="flex my-2 mx-2 p-2 justify-around">
-            <button className="text-blue-700 text-xl">
-              <BiUpvote />
-            </button>
-            <button className="text-red-700 text-xl">
-              <BiDownvote />
-            </button>
+            {upvoted ? (
+              <button onClick={handleUpvote} className="text-blue-500 text-xl">
+                <BiSolidUpvote />
+              </button>
+            ) : (
+              <button onClick={handleUpvote} className="text-blue-500 text-xl">
+                <BiUpvote />
+              </button>
+            )}
+            {downvoted ? (
+              <button onClick={handleDownvote} className="text-red-700 text-xl">
+                <BiSolidDownvote />
+              </button>
+            ) : (
+              <button onClick={handleDownvote} className="text-red-700 text-xl">
+                <BiDownvote />
+              </button>
+            )}
 
             <button>
               <FiShare2 className="text-xl text-blue-700" />
@@ -247,10 +314,15 @@ const Post = () => {
                 placeholder="Comment"
                 ref={textareaRef}
                 onInput={handleInput}
-                rows={1} // Set initial rows
+                rows={1}
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
               ></textarea>
               <div className="flex justify-end">
-                <button className=" mr-6 bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                <button
+                  onClick={handleComment}
+                  className=" mr-6 bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                >
                   Reply
                 </button>
               </div>
@@ -259,7 +331,14 @@ const Post = () => {
         </div>
       </div>
       {post?.comments.map((comment, index) => {
-        return <Comment comment={comment} index={index} />;
+        return (
+          <Comment
+            comment={comment.text}
+            userid={comment.user_id}
+            index={index}
+            key={index}
+          />
+        );
       })}
     </div>
   );
