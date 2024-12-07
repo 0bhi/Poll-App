@@ -20,7 +20,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Providers>
-          <div className="flex h-screen overflow-hidden ">
+          <div className="flex h-screen overflow-hidden">
             {pathname !== "/signup" ? (
               <>
                 <div className="w-1/4 border-r-2 border-black">

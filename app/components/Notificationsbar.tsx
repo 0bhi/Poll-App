@@ -20,7 +20,7 @@ export default function Notificationsbar() {
         const res = await axios.get("/api/notifications", {
           params: { user_id: userId },
         });
-        console.log(res.data.notifications);
+
         setNotifs(res.data.notifications);
       } catch (error) {
         console.log(error);

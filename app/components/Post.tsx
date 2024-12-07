@@ -93,7 +93,10 @@ const Post = ({ data }: { data: PostType }) => {
 
   return (
     <div className="flex bg-white border-b-2 border-black p-2 space-x-2">
-      <div className="w-12 h-12 rounded-full overflow-hidden">
+      <div
+        className="w-12 h-12 rounded-full overflow-hidden"
+        onClick={() => router.push(`/${username}`)}
+      >
         <Image
           src={profilePicUrl}
           alt="ProfilePic"
@@ -103,10 +106,26 @@ const Post = ({ data }: { data: PostType }) => {
         />
       </div>
 
-      <div onClick={() => router.push("/post")} className="w-full">
+      <div onClick={() => router.push(`/post/${id}`)} className="w-full">
         <div className="flex gap-2 pl-2">
-          <h1>{name}</h1>
-          <p className="text-gray-400 ">{"@" + username}</p>
+          <h1
+            onClick={(event) => {
+              event.stopPropagation();
+              router.push(`/${username}`);
+            }}
+            className="hover:underline cursor-pointer"
+          >
+            {name}
+          </h1>
+          <p
+            onClick={(event) => {
+              event.stopPropagation();
+              router.push(`/${username}`);
+            }}
+            className="text-gray-400 cursor-pointer"
+          >
+            {"@" + username}
+          </p>
         </div>
         <div className="p-2">{text}</div>
         <div className="grid grid-cols-2 gap-2">

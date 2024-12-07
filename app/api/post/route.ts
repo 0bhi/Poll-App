@@ -27,3 +27,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request" });
   }
 }
+
+export async function GET(req: NextRequest) {
+  try {
+    const user_id = req.nextUrl.searchParams.get("postid");
+    if (user_id) {
+      const post = await Prisma.post.findUnique({
+        where: {
+          id: parseInt(user_id),
+        },
+        include: {
+          options: {
+            include: {
+              votes: true,
+            },
+          },
+          comments: true,
+        },
+      });
+      return NextResponse.json(post);
+    }
+  } catch (error) {
+    console.log(error);
+    return NextResponse.json(error);
+  }
+}
