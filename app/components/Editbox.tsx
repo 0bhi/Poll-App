@@ -1,16 +1,14 @@
 import React, { useState } from "react";
-import zod from "zod";
+import * as z from "zod";
 import axios from "axios";
 import { useSession } from "next-auth/react";
-
-const postSchema = zod.object({
-  text: zod.string(),
-  options: zod.array(zod.string()),
-  user_id: zod.string(),
+const postSchema = z.object({
+  text: z.string().min(1, "Poll text is required"),
+  options: z.array(z.string().min(1)).length(4, "Four options are required"),
+  user_id: z.string().min(1, "User ID is required"),
 });
 
 const Editbox = () => {
-  const session = useSession();
   const [text, setText] = useState("");
   const [option1, setOption1] = useState("");
   const [option2, setOption2] = useState("");
@@ -18,6 +16,7 @@ const Editbox = () => {
   const [option4, setOption4] = useState("");
 
   const handleSubmit = async () => {
+    const session = useSession();
     try {
       const parsedPost = postSchema.parse({
         text: text,
@@ -41,57 +40,68 @@ const Editbox = () => {
   };
 
   return (
-    <div className="border-b-2 border-black p-2">
+    <div className=" m-2 p-4 bg-white rounded-lg shadow-lg">
+      <h2 className="text-2xl font-bold mb-4">Create a Poll</h2>
       <textarea
         className="
-        border-2
-         border-blue-400
-                resize-none  
-                w-full  
-                h-24
-                text-xl
-                p-3
-                outline-none 
-                placeholder-neutral-500"
+          border-2
+          border-blue-400
+          resize-none
+          w-full
+          h-24
+          text-xl
+          p-3
+          outline-none
+          placeholder-neutral-500
+          rounded-md
+          mb-4
+        "
         placeholder="Write a poll..."
         value={text}
         onChange={(e) => setText(e.target.value)}
-      ></textarea>
-      <div className="grid grid-cols-2 gap-4">
+      />
+      <div className="grid grid-cols-2 gap-2">
         <input
-          className="p-2 m-2 outline-none border-2 border-blue-400"
+          className="border-2 border-blue-400 w-full p-2 mb-2 rounded-md"
           placeholder="Option 1"
           value={option1}
           onChange={(e) => setOption1(e.target.value)}
-        ></input>
-
+        />
         <input
-          className="p-2 m-2 outline-none border-2 border-blue-400"
+          className="border-2 border-blue-400 w-full p-2 mb-2 rounded-md"
           placeholder="Option 2"
           value={option2}
           onChange={(e) => setOption2(e.target.value)}
-        ></input>
+        />
         <input
-          className="p-2 m-2 outline-none border-2 border-blue-400"
+          className="border-2 border-blue-400 w-full p-2 mb-2 rounded-md"
           placeholder="Option 3"
           value={option3}
           onChange={(e) => setOption3(e.target.value)}
-        ></input>
+        />
         <input
-          className="p-2 m-2 outline-none border-2 border-blue-400"
+          className="border-2 border-blue-400 w-full p-2 mb-2 rounded-md"
           placeholder="Option 4"
           value={option4}
           onChange={(e) => setOption4(e.target.value)}
-        ></input>
+        />
       </div>
-      <div className="flex justify-center mt-2">
-        <button
-          className="bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          onClick={handleSubmit}
-        >
-          Add Poll
-        </button>
-      </div>
+
+      <button
+        className="
+          bg-blue-500
+          text-white
+          px-4
+          py-2
+          rounded-md
+          hover:bg-blue-600
+          transition
+          duration-300
+        "
+        onClick={handleSubmit}
+      >
+        Submit
+      </button>
     </div>
   );
 };

@@ -15,7 +15,7 @@ import Image from "next/image";
 interface PostType {
   id: string;
   text: string;
-  options: any;
+  options: string[];
   user_id: string;
 }
 
@@ -129,9 +129,9 @@ const Post = ({ data }: { data: PostType }) => {
   };
 
   return (
-    <div className="flex bg-white border-b-2 border-black p-2 space-x-2">
+    <div className="flex bg-white shadow-lg p-4 space-x-4 m-4 rounded-lg">
       <div
-        className="w-12 h-12 rounded-full overflow-hidden"
+        className="w-14 h-14 rounded-full overflow-hidden cursor-pointer"
         onClick={() => router.push(`/${username}`)}
       >
         <Image

@@ -23,7 +23,7 @@ export default function Feed() {
     fetchData();
   }, []);
   return (
-    <div className=" bg-blue-200 h-full overflow-y-auto scrollbar-hide">
+    <div className="  h-full overflow-y-auto scrollbar-hide">
       <Editbox />
       {posts.map((post: PostType, index) => (
         <Post key={index} data={post} />

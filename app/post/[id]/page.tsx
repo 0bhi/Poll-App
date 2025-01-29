@@ -308,7 +308,7 @@ const Post = () => {
             </div>
             <div className="w-full">
               <textarea
-                className="w-full outline-none resize-none w-full"
+                className="w-full outline-none resize-none "
                 name="comment"
                 id="1"
                 placeholder="Comment"

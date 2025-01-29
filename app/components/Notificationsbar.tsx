@@ -30,7 +30,7 @@ export default function Notificationsbar() {
   }, [session.data?.user.id]);
 
   return (
-    <div className="border-l-2 h-screen border-black">
+    <div className=" border-l-2 h-screen border-gray-200">
       <div className="text-blue-700 text-center font-semibold text-2xl py-2 border-b-2 border-black">
         Notifications
       </div>

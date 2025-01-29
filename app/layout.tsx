@@ -23,7 +23,7 @@ export default function RootLayout({
           <div className="flex h-screen overflow-hidden">
             {pathname !== "/signup" ? (
               <>
-                <div className="w-1/4 border-r-2 border-black">
+                <div className="w-1/4 border-r-2 border-gray-200">
                   <Homebar />
                 </div>
                 <div className="w-1/2 ">{children}</div>
