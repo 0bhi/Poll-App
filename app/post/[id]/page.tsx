@@ -208,7 +208,7 @@ const Post = () => {
 
   return (
     <div>
-      <div className="flex bg-white border-b-2 border-black p-2 space-x-2">
+      <div className="flex bg-white  m-2 p-2 space-x-2 rounded shadow-lg">
         <div
           className="w-12 h-12 rounded-full overflow-hidden"
           onClick={() => router.push(`/${username}`)}

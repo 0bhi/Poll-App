@@ -28,7 +28,7 @@ const Comment: React.FC<CommentProps> = ({ comment, userid, index }) => {
   }, [userid]);
 
   return (
-    <div className="flex gap-4 p-4 border-b-2 border-black">
+    <div className="flex gap-4 m-2 p-2 rounded shadow-lg">
       <div className="w-12 h-12 rounded-full overflow-hidden">
         <Image
           className="object-cover scale-125"
