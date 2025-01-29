@@ -133,7 +133,9 @@ const Post = () => {
 
   const onChoice = async (choice: any, index: number) => {
     if (isClicked) return;
-
+    updateVote(index, 1);
+    setIsClicked(true);
+    setClickedOption(choice.id);
     try {
       const res = await axios.post("/api/votes/vote", {
         name: session.data?.user?.name,
@@ -142,206 +144,245 @@ const Post = () => {
         post_id: id,
         postAuthorId: post?.user_id,
       });
-      if (res) {
-        updateVote(index);
-        setIsClicked(true);
-        setClickedOption(choice.id);
+      if (!res || res.status < 200 || res.status >= 300) {
+        updateVote(index, -1);
+        setIsClicked(false);
+        setClickedOption(null);
       }
     } catch (error) {
       console.log(error);
+      updateVote(index, -1);
+      setIsClicked(false);
+      setClickedOption(null);
     }
   };
 
-  const updateVote = (index: number) => {
+  const updateVote = (index: number, increment: number) => {
     const updatedVotes = [...votes];
-    updatedVotes[index] += 1;
+    updatedVotes[index] += increment;
     setVotes(updatedVotes);
   };
 
   const handleUpvote = async () => {
     if (downvoted) {
-      await axios.post("/api/downvote", { id: id });
       setDownvoted(false);
+      setUpvoted(true);
+      const res = await axios.post("/api/downvote", { id: id });
+      if (!res || res.status < 200 || res.status >= 300) {
+        setDownvoted(false);
+        setUpvoted(false);
+      }
+      return;
     }
 
     if (!upvoted) {
-      await axios.post("/api/upvote", { id: id });
       setUpvoted(true);
+      const res = await axios.post("/api/upvote", { id: id });
+      if (!res || res.status < 200 || res.status >= 300) {
+        setUpvoted(false);
+      }
     } else {
-      await axios.post("/api/remove-upvote", { id: id });
       setUpvoted(false);
+      const res = await axios.post("/api/remove-upvote", { id: id });
+      if (!res || res.status < 200 || res.status >= 300) {
+        setUpvoted(true);
+      }
     }
   };
 
   const handleDownvote = async () => {
     if (upvoted) {
-      await axios.post("/api/remove-upvote", { id: id });
       setUpvoted(false);
+      setDownvoted(true);
+      const res = await axios.post("/api/remove-upvote", { id: id });
+      if (!res || res.status < 200 || res.status >= 300) {
+        setDownvoted(false);
+        setUpvoted(true);
+      }
+      return;
     }
 
     if (!downvoted) {
-      await axios.post("/api/downvote", { id: id });
       setDownvoted(true);
-    } else {
-      await axios.post("/api/remove-downvote", { id: id });
-      setDownvoted(false);
-    }
-  };
-
-  const handleComment = async () => {
-    try {
-      console.log("inside try catch");
-      const res = await axios.post("/api/comment", {
-        postid: id,
-        comment: comment,
-        userid: session?.data.user?.id,
-      });
-      console.log("after axios");
-      if (res) {
-        setComment("");
-        console.log(res);
+      const res = await axios.post("/api/downvote", { id: id });
+      if (!res || res.status < 200 || res.status >= 300) {
+        setDownvoted(false);
       }
-    } catch (error) {
-      console.log(error);
+    } else {
+      setDownvoted(false);
+      const res = await axios.post("/api/remove-downvote", { id: id });
+      if (!res || res.status < 200 || res.status >= 300) {
+        setDownvoted(true);
+      }
     }
-  };
 
-  return (
-    <div>
-      <div className="flex bg-white  m-2 p-2 space-x-2 rounded shadow-lg">
-        <div
-          className="w-12 h-12 rounded-full overflow-hidden"
-          onClick={() => router.push(`/${username}`)}
-        >
-          <Image
-            src={profilePicUrl}
-            alt="ProfilePic"
-            className="object-cover scale-125"
-            width={64}
-            height={64}
-          />
-        </div>
+    const handleComment = async () => {
+      try {
+        console.log("inside try catch");
+        const res = await axios.post("/api/comment", {
+          postid: id,
+          comment: comment,
+          userid: session?.data.user?.id,
+        });
+        console.log("after axios");
+        if (res) {
+          setComment("");
+          console.log(res);
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    };
 
-        <div onClick={() => router.push(`/post/${id}`)} className="w-full">
-          <div className="flex flex-col pl-2">
-            <h1
-              onClick={(event) => {
-                event.stopPropagation();
-                router.push(`/${username}`);
-              }}
-              className="hover:underline cursor-pointer"
-            >
-              {name}
-            </h1>
-            <p
-              onClick={(event) => {
-                event.stopPropagation();
-                router.push(`/${username}`);
-              }}
-              className="text-gray-400 cursor-pointer"
-            >
-              {"@" + username}
-            </p>
+    return (
+      <div>
+        <div className="flex bg-white  m-2 p-2 space-x-2 rounded shadow-lg">
+          <div
+            className="w-12 h-12 rounded-full overflow-hidden"
+            onClick={() => router.push(`/${username}`)}
+          >
+            <Image
+              src={profilePicUrl}
+              alt="ProfilePic"
+              className="object-cover scale-125"
+              width={64}
+              height={64}
+            />
           </div>
-          <div className="p-2 my-2">{post?.text}</div>
-          <div className="grid grid-cols-2 gap-2">
-            {post?.options?.map((option: any, index: number) => (
-              <button
-                key={option.id}
-                className={` ${
-                  option.id == clickedOption ? "bg-blue-700" : "bg-blue-500"
-                } text-white rounded-md p-2`}
+
+          <div onClick={() => router.push(`/post/${id}`)} className="w-full">
+            <div className="flex flex-col pl-2">
+              <h1
                 onClick={(event) => {
                   event.stopPropagation();
-                  onChoice(option, index);
+                  router.push(`/${username}`);
                 }}
-                disabled={isClicked || session.status === "unauthenticated"}
+                className="hover:underline cursor-pointer"
               >
-                {`${option.text} ${votes[index]}`}
-              </button>
-            ))}
-          </div>
-          <div className="text-gray-500 py-4 text-sm">{date}</div>
-          <div style={{ height: "1px" }} className="bg-gray-300 " />
-          <div className="flex my-2 mx-2 p-2 justify-around">
-            {upvoted ? (
-              <button onClick={handleUpvote} className="text-blue-500 text-xl">
-                <BiSolidUpvote />
-              </button>
-            ) : (
-              <button onClick={handleUpvote} className="text-blue-500 text-xl">
-                <BiUpvote />
-              </button>
-            )}
-            {downvoted ? (
-              <button onClick={handleDownvote} className="text-red-700 text-xl">
-                <BiSolidDownvote />
-              </button>
-            ) : (
-              <button onClick={handleDownvote} className="text-red-700 text-xl">
-                <BiDownvote />
-              </button>
-            )}
-
-            <button>
-              <FiShare2 className="text-xl text-blue-700" />
-            </button>
-            <button>
-              <FaRegBookmark className="text-xl text-blue-700" />
-            </button>
-          </div>
-          <div style={{ height: "1px" }} className="bg-gray-300 " />
-          <div className=" p-2 flex gap-4">
-            <div
-              className="w-12 h-12 rounded-full overflow-hidden"
-              onClick={() => router.push(`/${username}`)}
-            >
-              {session.data && (
-                <Image
-                  src={session?.data.user?.image}
-                  alt="ProfilePic"
-                  className="object-cover scale-125"
-                  width={64}
-                  height={64}
-                />
-              )}
+                {name}
+              </h1>
+              <p
+                onClick={(event) => {
+                  event.stopPropagation();
+                  router.push(`/${username}`);
+                }}
+                className="text-gray-400 cursor-pointer"
+              >
+                {"@" + username}
+              </p>
             </div>
-            <div className="w-full">
-              <textarea
-                className="w-full outline-none resize-none "
-                name="comment"
-                id="1"
-                placeholder="Comment"
-                ref={textareaRef}
-                onInput={handleInput}
-                rows={1}
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-              ></textarea>
-              <div className="flex justify-end">
+            <div className="p-2 my-2">{post?.text}</div>
+            <div className="grid grid-cols-2 gap-2">
+              {post?.options?.map((option: any, index: number) => (
                 <button
-                  onClick={handleComment}
-                  className=" mr-6 bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                  key={option.id}
+                  className={` ${
+                    option.id == clickedOption ? "bg-blue-700" : "bg-blue-500"
+                  } text-white rounded-md p-2`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onChoice(option, index);
+                  }}
+                  disabled={isClicked || session.status === "unauthenticated"}
                 >
-                  Reply
+                  {`${option.text} ${votes[index]}`}
                 </button>
+              ))}
+            </div>
+            <div className="text-gray-500 py-4 text-sm">{date}</div>
+            <div style={{ height: "1px" }} className="bg-gray-300 " />
+            <div className="flex my-2 mx-2 p-2 justify-around">
+              {upvoted ? (
+                <button
+                  onClick={handleUpvote}
+                  className="text-blue-500 text-xl"
+                >
+                  <BiSolidUpvote />
+                </button>
+              ) : (
+                <button
+                  onClick={handleUpvote}
+                  className="text-blue-500 text-xl"
+                >
+                  <BiUpvote />
+                </button>
+              )}
+              {downvoted ? (
+                <button
+                  onClick={handleDownvote}
+                  className="text-red-700 text-xl"
+                >
+                  <BiSolidDownvote />
+                </button>
+              ) : (
+                <button
+                  onClick={handleDownvote}
+                  className="text-red-700 text-xl"
+                >
+                  <BiDownvote />
+                </button>
+              )}
+
+              <button>
+                <FiShare2 className="text-xl text-blue-700" />
+              </button>
+              <button>
+                <FaRegBookmark className="text-xl text-blue-700" />
+              </button>
+            </div>
+            <div style={{ height: "1px" }} className="bg-gray-300 " />
+            <div className=" p-2 flex gap-4">
+              <div
+                className="w-12 h-12 rounded-full overflow-hidden"
+                onClick={() => router.push(`/${username}`)}
+              >
+                {session.data && (
+                  <Image
+                    src={session?.data.user?.image}
+                    alt="ProfilePic"
+                    className="object-cover scale-125"
+                    width={64}
+                    height={64}
+                  />
+                )}
+              </div>
+              <div className="w-full">
+                <textarea
+                  className="w-full outline-none resize-none "
+                  name="comment"
+                  id="1"
+                  placeholder="Comment"
+                  ref={textareaRef}
+                  onInput={handleInput}
+                  rows={1}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                ></textarea>
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleComment}
+                    className=" mr-6 bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                  >
+                    Reply
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
+        {post?.comments.map((comment, index) => {
+          return (
+            <Comment
+              comment={comment.text}
+              userid={comment.user_id}
+              index={index}
+              key={index}
+            />
+          );
+        })}
       </div>
-      {post?.comments.map((comment, index) => {
-        return (
-          <Comment
-            comment={comment.text}
-            userid={comment.user_id}
-            index={index}
-            key={index}
-          />
-        );
-      })}
-    </div>
-  );
+    );
+  };
 };
 
 export default Post;
