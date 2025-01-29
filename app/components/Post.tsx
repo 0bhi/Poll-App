@@ -74,6 +74,10 @@ const Post = ({ data }: { data: PostType }) => {
   const onChoice = async (choice: any, index: number) => {
     if (isClicked) return;
 
+    updateVote(index, 1);
+    setIsClicked(true);
+    setClickedOption(choice.id);
+
     try {
       const res = await axios.post("/api/votes/vote", {
         name: session.data?.user?.name,
@@ -82,54 +86,83 @@ const Post = ({ data }: { data: PostType }) => {
         post_id: id,
         postAuthorId: user_id,
       });
-      if (res) {
-        updateVote(index);
-        setIsClicked(true);
-        setClickedOption(choice.id);
+
+      if (!res || res.status < 200 || res.status >= 300) {
+        updateVote(index, -1);
+        setIsClicked(false);
+        setClickedOption(null);
+        console.log("Failed to vote:", res?.status, res?.statusText);
       }
     } catch (error) {
+      updateVote(index, -1);
+      setIsClicked(false);
+      setClickedOption(null);
       console.log(error);
     }
   };
 
+  const updateVote = (index: number, increment: number) => {
+    const updatedVotes = [...votes];
+    updatedVotes[index] += increment;
+    setVotes(updatedVotes);
+  };
+
   const handleUpvote = async () => {
     if (downvoted) {
-      await axios.post("/api/downvote", { id: id });
       setDownvoted(false);
+      setUpvoted(true);
+      const res = await axios.post("/api/downvote", { id: id });
+      if (res.status < 200 || res.status >= 300) {
+        setDownvoted(true);
+        setUpvoted(false);
+      }
+      return;
     }
 
     if (!upvoted) {
-      await axios.post("/api/upvote", { id: id });
       setUpvoted(true);
+      const res = await axios.post("/api/upvote", { id: id });
+      if (res.status < 200 || res.status >= 300) {
+        setUpvoted(false);
+      }
     } else {
-      await axios.post("/api/remove-upvote", { id: id });
       setUpvoted(false);
+      const res = await axios.post("/api/remove-upvote", { id: id });
+      if (res.status < 200 || res.status >= 300) {
+        setUpvoted(true);
+      }
     }
   };
 
   const handleDownvote = async () => {
     if (upvoted) {
-      await axios.post("/api/remove-upvote", { id: id });
       setUpvoted(false);
+      setDownvoted(true);
+      const res = await axios.post("/api/remove-upvote", { id: id });
+      if (res.status < 200 || res.status >= 300) {
+        setDownvoted(false);
+        setUpvoted(true);
+      }
+      return;
     }
 
     if (!downvoted) {
-      await axios.post("/api/downvote", { id: id });
       setDownvoted(true);
+      const res = await axios.post("/api/downvote", { id: id });
+      if (res.status < 200 || res.status >= 300) {
+        setDownvoted(false);
+      }
     } else {
-      await axios.post("/api/remove-downvote", { id: id });
       setDownvoted(false);
+      const res = await axios.post("/api/remove-downvote", { id: id });
+      if (res.status < 200 || res.status >= 300) {
+        setDownvoted(true);
+      }
     }
   };
 
-  const updateVote = (index: number) => {
-    const updatedVotes = [...votes];
-    updatedVotes[index] += 1;
-    setVotes(updatedVotes);
-  };
-
   return (
-    <div className="flex bg-white shadow-lg p-4 space-x-4 m-4 rounded-lg">
+    <div className="flex bg-white shadow-lg p-4 space-x-4 m-4 rounded-lg hover:shadow-xl transition-all duration-300 ease-in-out">
       <div
         className="w-14 h-14 rounded-full overflow-hidden cursor-pointer"
         onClick={() => router.push(`/${username}`)}
@@ -205,7 +238,6 @@ const Post = ({ data }: { data: PostType }) => {
           </button>
           <button
             onClick={() => {
-              console.log("clicked");
               router.push("/post");
             }}
             className="text-blue-700 text-xl"

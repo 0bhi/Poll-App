@@ -31,14 +31,14 @@ export default function Notificationsbar() {
 
   return (
     <div className=" border-l-2 h-screen border-gray-200">
-      <div className="text-blue-700 text-center font-semibold text-2xl py-2 border-b-2 border-black">
+      <div className="text-blue-700 text-center font-semibold text-2xl py-2 border-b-2 border-gray-200">
         Notifications
       </div>
 
       {notifs && notifs.length > 0 ? (
         notifs.map((notif) => (
           <div
-            className="text-black text-m py-2 text-center border-b-2 border-grey"
+            className="text-black text-m m-2 p-2 text-center rounded shadow-lg"
             key={notif.id}
           >
             {notif.text}

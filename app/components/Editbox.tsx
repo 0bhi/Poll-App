@@ -9,6 +9,7 @@ const postSchema = z.object({
 });
 
 const Editbox = () => {
+  const session = useSession();
   const [text, setText] = useState("");
   const [option1, setOption1] = useState("");
   const [option2, setOption2] = useState("");
@@ -16,7 +17,6 @@ const Editbox = () => {
   const [option4, setOption4] = useState("");
 
   const handleSubmit = async () => {
-    const session = useSession();
     try {
       const parsedPost = postSchema.parse({
         text: text,
@@ -87,21 +87,23 @@ const Editbox = () => {
         />
       </div>
 
-      <button
-        className="
-          bg-blue-500
-          text-white
-          px-4
-          py-2
-          rounded-md
-          hover:bg-blue-600
-          transition
-          duration-300
-        "
-        onClick={handleSubmit}
-      >
-        Submit
-      </button>
+      <div className="text-right">
+        <button
+          className="
+      bg-blue-500
+      text-white
+      px-4
+      py-2
+      rounded-md
+      hover:bg-blue-600
+      transition
+      duration-300
+    "
+          onClick={handleSubmit}
+        >
+          Submit
+        </button>
+      </div>
     </div>
   );
 };
