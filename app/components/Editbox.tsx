@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import { signIn } from "next-auth/react";
 import * as z from "zod";
 import axios from "axios";
 import { useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
 const postSchema = z.object({
   text: z.string().min(1, "Poll text is required"),
   options: z.array(z.string().min(1)).length(4, "Four options are required"),
@@ -9,7 +11,8 @@ const postSchema = z.object({
 });
 
 const Editbox = () => {
-  const session = useSession();
+  const { data: session, status } = useSession();
+  const pathname = usePathname();
   const [text, setText] = useState("");
   const [option1, setOption1] = useState("");
   const [option2, setOption2] = useState("");
@@ -17,11 +20,15 @@ const Editbox = () => {
   const [option4, setOption4] = useState("");
 
   const handleSubmit = async () => {
+    if (status === "unauthenticated") {
+      signIn(undefined, { callbackUrl: pathname });
+      return;
+    }
     try {
       const parsedPost = postSchema.parse({
         text: text,
         options: [option1, option2, option3, option4],
-        user_id: `${session.data?.user?.id}` || "",
+        user_id: `${session?.user?.id}` || "",
       });
       if (parsedPost) {
         const res = await axios.post("/api/post", parsedPost);

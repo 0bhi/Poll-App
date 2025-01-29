@@ -1,7 +1,7 @@
 import React from "react";
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { useSession } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react";
 import { FaRegComment } from "react-icons/fa";
 import {
   BiDownvote,
@@ -9,7 +9,7 @@ import {
   BiSolidUpvote,
   BiUpvote,
 } from "react-icons/bi";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 
 interface PostType {
@@ -20,8 +20,9 @@ interface PostType {
 }
 
 const Post = ({ data }: { data: PostType }) => {
-  const session: any = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [profilePicUrl, setProfilePicUrl] = useState("");
@@ -51,11 +52,11 @@ const Post = ({ data }: { data: PostType }) => {
 
       if (session) {
         const voteRes = await axios.get("/api/votes/vote", {
-          params: { postId: id, userId: session.data?.user?.id },
+          params: { postId: id, userId: session.user?.id },
         });
         if (voteRes.data.vote) {
           setClickedOption(voteRes.data.vote.option_id);
-          if (voteRes.data.vote.user_id === parseInt(session.data?.user?.id)) {
+          if (voteRes.data.vote.user_id === parseInt(session.user?.id)) {
             setIsClicked(true);
           }
         }
@@ -72,6 +73,10 @@ const Post = ({ data }: { data: PostType }) => {
   }, []);
 
   const onChoice = async (choice: any, index: number) => {
+    if (status === "unauthenticated") {
+      signIn(undefined, { callbackUrl: pathname });
+      return;
+    }
     if (isClicked) return;
 
     updateVote(index, 1);
@@ -80,8 +85,8 @@ const Post = ({ data }: { data: PostType }) => {
 
     try {
       const res = await axios.post("/api/votes/vote", {
-        name: session.data?.user?.name,
-        user_id: session.data?.user?.id,
+        name: session?.user?.name,
+        user_id: session?.user?.id,
         option_id: choice.id,
         post_id: id,
         postAuthorId: user_id,
@@ -108,6 +113,10 @@ const Post = ({ data }: { data: PostType }) => {
   };
 
   const handleUpvote = async () => {
+    if (status === "unauthenticated") {
+      signIn(undefined, { callbackUrl: pathname });
+      return;
+    }
     if (downvoted) {
       setDownvoted(false);
       setUpvoted(true);
@@ -135,6 +144,10 @@ const Post = ({ data }: { data: PostType }) => {
   };
 
   const handleDownvote = async () => {
+    if (status === "unauthenticated") {
+      signIn(undefined, { callbackUrl: pathname });
+      return;
+    }
     if (upvoted) {
       setUpvoted(false);
       setDownvoted(true);
@@ -209,7 +222,7 @@ const Post = ({ data }: { data: PostType }) => {
                 event.stopPropagation();
                 onChoice(option, index);
               }}
-              disabled={isClicked || session.status === "unauthenticated"}
+              disabled={isClicked}
             >
               {`${option.text} ${votes[index]}`}
             </button>
