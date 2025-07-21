@@ -9,6 +9,7 @@ export async function POST(req: NextRequest) {
         text: body.comment,
         postId: parseInt(body.postid),
         user_id: body.userid,
+        parentId: body.parentId ? parseInt(body.parentId) : undefined,
       },
     });
     return NextResponse.json(res);

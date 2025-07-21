@@ -5,7 +5,6 @@ import { NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    console.log(body.options[0]);
     const post = await Prisma.post.create({
       data: {
         text: body.text,
@@ -19,8 +18,14 @@ export async function POST(req: NextRequest) {
         },
         user_id: parseInt(body.user_id),
       },
+      include: {
+        options: {
+          include: {
+            votes: true,
+          },
+        },
+      },
     });
-
     return NextResponse.json(post);
   } catch (e) {
     console.log(e);
@@ -42,7 +47,11 @@ export async function GET(req: NextRequest) {
               votes: true,
             },
           },
-          comments: true,
+          comments: {
+            include: {
+              replies: true,
+            },
+          },
         },
       });
       return NextResponse.json(post);

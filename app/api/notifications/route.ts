@@ -13,7 +13,29 @@ export async function GET(req: NextRequest) {
           createdAt: "desc",
         },
       });
-      return NextResponse.json({ notifications });
+      // Fetch actor details for each notification
+      const notificationsWithActors = await Promise.all(
+        notifications.map(async (notif) => {
+          let actors: any[] = [];
+          const n = notif as any; // cast to any to access actorIds
+          if (n.actorIds && n.actorIds.length > 0) {
+            actors = await prisma.user.findMany({
+              where: { id: { in: n.actorIds } },
+              select: {
+                id: true,
+                name: true,
+                username: true,
+                profilePicture: true,
+              },
+            });
+          }
+          return {
+            ...notif,
+            actors,
+          };
+        })
+      );
+      return NextResponse.json({ notifications: notificationsWithActors });
     }
     return NextResponse.json({ message: "userId not found" });
   } catch (err) {

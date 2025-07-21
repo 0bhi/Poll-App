@@ -217,16 +217,72 @@ const Post = () => {
 
   const handleComment = async () => {
     try {
-      console.log("inside try catch");
       const res = await axios.post("/api/comment", {
         postid: id,
         comment: comment,
         userid: session?.data.user?.id,
       });
-      console.log("after axios");
-      if (res) {
+      if (res && res.data) {
         setComment("");
-        console.log(res);
+        // Add the new comment to the post's comments array instantly
+        setPost((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            comments: [
+              ...prev.comments,
+              {
+                text: comment,
+                user_id: session?.data.user?.id,
+              },
+            ],
+          };
+        });
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  // Add this handler for replying to comments
+  const handleReplyToComment = async (replyText: string, parentId: number) => {
+    try {
+      const res = await axios.post("/api/comment", {
+        postid: id,
+        comment: replyText,
+        userid: session?.data.user?.id,
+        parentId: parentId,
+      });
+      if (res && res.data) {
+        // Add the reply to the correct comment in state
+        setPost((prev) => {
+          if (!prev) return prev;
+          const addReply = (comments: any[]): any[] =>
+            comments.map((c) => {
+              if (c.id === parentId) {
+                return {
+                  ...c,
+                  replies: [
+                    ...(c.replies || []),
+                    {
+                      ...res.data,
+                      text: replyText,
+                      user_id: session?.data.user?.id,
+                      replies: [],
+                    },
+                  ],
+                };
+              } else if (c.replies && c.replies.length > 0) {
+                return { ...c, replies: addReply(c.replies) };
+              } else {
+                return c;
+              }
+            });
+          return {
+            ...prev,
+            comments: addReply(prev.comments),
+          };
+        });
       }
     } catch (error) {
       console.log(error);
@@ -234,7 +290,7 @@ const Post = () => {
   };
 
   return (
-    <div>
+    <div className="h-screen overflow-y-auto scrollbar-hide">
       <div className="flex bg-white  m-2 p-2 space-x-2 rounded shadow-lg">
         <div
           className="w-12 h-12 rounded-full overflow-hidden"
@@ -363,7 +419,10 @@ const Post = () => {
             comment={comment.text}
             userid={comment.user_id}
             index={index}
-            key={index}
+            key={comment.id || index}
+            replies={comment.replies}
+            onReply={handleReplyToComment}
+            commentId={comment.id}
           />
         );
       })}

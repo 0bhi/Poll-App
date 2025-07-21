@@ -32,7 +32,7 @@ const Post = ({ data }: { data: PostType }) => {
   const [upvoted, setUpvoted] = useState(false);
   const [downvoted, setDownvoted] = useState(false);
 
-  const { id, text, options, user_id } = data;
+  const { id, text, options = [], user_id } = data; // fallback to []
 
   const fetchData = async () => {
     try {
@@ -68,7 +68,9 @@ const Post = ({ data }: { data: PostType }) => {
 
   useEffect(() => {
     fetchData();
-    const votesArray = options.map((option: any) => option.votes.length);
+    const votesArray = (options || []).map(
+      (option: any) => option.votes.length
+    );
     setVotes(votesArray);
   }, []);
 
@@ -210,7 +212,7 @@ const Post = ({ data }: { data: PostType }) => {
         </div>
         <div className="p-2">{text}</div>
         <div className="grid grid-cols-2 gap-2">
-          {options.map((option: any, index: number) => (
+          {(options || []).map((option: any, index: number) => (
             <button
               key={option.id}
               className={` ${
