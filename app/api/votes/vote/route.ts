@@ -24,22 +24,33 @@ export async function POST(req: any) {
   const body = await req.json();
   console.log(body);
   try {
-    const res = await Prisma.vote.create({
-      data: {
-        option_id: parseInt(body.option_id),
+    const existingVote = await Prisma.vote.findFirst({
+      where: {
         user_id: parseInt(body.user_id),
         post_id: parseInt(body.post_id),
       },
     });
-    const NotifRes = await Prisma.notifications.create({
-      data: {
-        text: `${body.name} voted in your post`,
-        user_id: parseInt(body.postAuthorId),
-        type: "VOTE",
-      },
-    });
 
-    console.log(res);
+    if (existingVote) {
+      return NextResponse.json({ error: "vote already exists" });
+    }
+
+    const [res, NotifRes] = await Prisma.$transaction([
+      Prisma.vote.create({
+        data: {
+          option_id: parseInt(body.option_id),
+          user_id: parseInt(body.user_id),
+          post_id: parseInt(body.post_id),
+        },
+      }),
+      Prisma.notifications.create({
+        data: {
+          text: `${body.name} voted in your post`,
+          user_id: parseInt(body.postAuthorId),
+          type: "VOTE",
+        },
+      }),
+    ]);
     return NextResponse.json({ res, NotifRes });
   } catch (error) {
     console.log(error);
