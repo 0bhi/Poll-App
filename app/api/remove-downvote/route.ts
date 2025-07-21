@@ -3,23 +3,16 @@ import Prisma from "../../lib/db";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    if (!body) {
-      return NextResponse.json({ msg: "no body" });
-    }
-    const res = Prisma.post.update({
-      where: {
-        id: body.id,
-      },
-      data: {
-        downvote: {
-          decrement: 1,
-        },
-      },
+    const { user_id, post_id } = await req.json();
+    await Prisma.postVote.deleteMany({
+      where: { user_id, post_id, type: "DOWNVOTE" },
     });
-    return NextResponse.json(res);
+    return NextResponse.json({ message: "Downvote removed" });
   } catch (error) {
     console.log(error);
-    return NextResponse.json(error);
+    return NextResponse.json(
+      { error: "Failed to remove downvote" },
+      { status: 500 }
+    );
   }
 }

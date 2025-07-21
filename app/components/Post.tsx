@@ -120,30 +120,26 @@ const Post = ({ data }: { data: PostType }) => {
     if (downvoted) {
       setDownvoted(false);
       setUpvoted(true);
-      const res = await axios.post("/api/downvote", { id: id });
-      if (res.status < 200 || res.status >= 300) {
-        setDownvoted(true);
-        setUpvoted(false);
-      }
-      return;
-    }
-
-    if (!upvoted) {
-      setUpvoted(true);
-      const res = await axios.post("/api/upvote", {
+      await axios.post("/api/upvote", {
         user_id: session?.user.id,
         post_id: id,
       });
-      if (res.status < 200 || res.status >= 300) {
-        setUpvoted(false);
-      }
+      return;
+    }
+    if (!upvoted) {
+      setUpvoted(true);
+      await axios.post("/api/upvote", {
+        user_id: session?.user.id,
+        post_id: id,
+      });
     } else {
       setUpvoted(false);
-      const res = await axios.post("/api/remove-upvote", { id: id });
-      if (res.status < 200 || res.status >= 300) {
-        setUpvoted(true);
-      }
+      await axios.post("/api/remove-upvote", {
+        user_id: session?.user.id,
+        post_id: id,
+      });
     }
+    // Optionally, fetch new upvote/downvote counts here and update state
   };
 
   const handleDownvote = async () => {
@@ -154,27 +150,26 @@ const Post = ({ data }: { data: PostType }) => {
     if (upvoted) {
       setUpvoted(false);
       setDownvoted(true);
-      const res = await axios.post("/api/remove-upvote", { id: id });
-      if (res.status < 200 || res.status >= 300) {
-        setDownvoted(false);
-        setUpvoted(true);
-      }
+      await axios.post("/api/downvote", {
+        user_id: session?.user.id,
+        post_id: id,
+      });
       return;
     }
-
     if (!downvoted) {
       setDownvoted(true);
-      const res = await axios.post("/api/downvote", { id: id });
-      if (res.status < 200 || res.status >= 300) {
-        setDownvoted(false);
-      }
+      await axios.post("/api/downvote", {
+        user_id: session?.user.id,
+        post_id: id,
+      });
     } else {
       setDownvoted(false);
-      const res = await axios.post("/api/remove-downvote", { id: id });
-      if (res.status < 200 || res.status >= 300) {
-        setDownvoted(true);
-      }
+      await axios.post("/api/remove-downvote", {
+        user_id: session?.user.id,
+        post_id: id,
+      });
     }
+    // Optionally, fetch new upvote/downvote counts here and update state
   };
 
   return (
