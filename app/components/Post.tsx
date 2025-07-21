@@ -130,7 +130,10 @@ const Post = ({ data }: { data: PostType }) => {
 
     if (!upvoted) {
       setUpvoted(true);
-      const res = await axios.post("/api/upvote", { id: id });
+      const res = await axios.post("/api/upvote", {
+        user_id: session?.user.id,
+        post_id: id,
+      });
       if (res.status < 200 || res.status >= 300) {
         setUpvoted(false);
       }

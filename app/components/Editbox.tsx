@@ -10,7 +10,18 @@ const postSchema = z.object({
   user_id: z.string().min(1, "User ID is required"),
 });
 
-const Editbox = () => {
+interface PostType {
+  id: string;
+  text: string;
+  options: any;
+  user_id: string;
+}
+
+const Editbox = ({
+  onPostCreated,
+}: {
+  onPostCreated: (post: PostType) => void;
+}) => {
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const [text, setText] = useState("");
@@ -32,13 +43,13 @@ const Editbox = () => {
       });
       if (parsedPost) {
         const res = await axios.post("/api/post", parsedPost);
-        if (res) {
+        if (res && res.data) {
+          onPostCreated(res.data);
           setText("");
           setOption1("");
           setOption2("");
           setOption3("");
           setOption4("");
-          window.location.reload();
         }
       }
     } catch (error) {

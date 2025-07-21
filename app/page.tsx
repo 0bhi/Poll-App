@@ -37,9 +37,13 @@ export default function Feed() {
     fetchData();
   }, []);
 
+  const handleAddPost = (newPost: PostType) => {
+    setPosts((prev) => [newPost, ...prev]);
+  };
+
   return (
     <div className="  h-full overflow-y-auto scrollbar-hide">
-      <Editbox />
+      <Editbox onPostCreated={handleAddPost} />
       <InfiniteScroll
         dataLength={posts.length}
         next={() => fetchData()}
