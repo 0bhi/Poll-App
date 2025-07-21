@@ -11,13 +11,25 @@ interface CommentProps {
   commentId?: number;
 }
 
-const Comment: React.FC<CommentProps> = ({
+const NEST_COLORS = [
+  "border-accent bg-gray-50 dark:bg-gray-900/30",
+  "border-blue-400 bg-blue-50 dark:bg-blue-900/20",
+  "border-green-400 bg-green-50 dark:bg-green-900/20",
+  "border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20",
+];
+
+function getNestClass(level: number) {
+  return NEST_COLORS[level % NEST_COLORS.length];
+}
+
+const Comment: React.FC<CommentProps & { level?: number }> = ({
   comment,
   userid,
   index,
   replies = [],
   onReply,
   commentId,
+  level = 0,
 }) => {
   const [profilePic, setProfilePic] = useState("");
   const [name, setName] = useState("");
@@ -50,39 +62,43 @@ const Comment: React.FC<CommentProps> = ({
 
   return (
     <div className="ml-0">
-      <div className="flex gap-4 m-2 p-2 rounded shadow-lg">
-        <div className="w-12 h-12 rounded-full overflow-hidden">
+      <div
+        className={`card flex gap-2 items-start transition-all duration-300 animate-fade-in rounded-md shadow-sm p-2 bg-card text-main`}
+      >
+        <div className="avatar overflow-hidden bg-accent/20">
           <Image
-            className="object-cover scale-125"
+            className="object-cover"
             src={profilePic}
             alt={profilePic}
-            width={64}
-            height={64}
+            width={36}
+            height={36}
           />
         </div>
-        <div>
-          <div className="flex gap-2">
-            <div>{name}</div>
-            <div className="text-gray-400">{"@" + username}</div>
+        <div className="flex-1">
+          <div className="flex gap-1 items-center mb-0.5">
+            <div className="heading-3 text-sm">{name}</div>
+            <div className="text-gray-400 body-sm text-xs">
+              {"@" + username}
+            </div>
           </div>
-          <div className="w-full py-2">{comment}</div>
+          <div className="w-full py-1 body-lg text-sm">{comment}</div>
           <button
-            className="text-blue-500 text-xs"
+            className="accent text-xs font-medium hover:underline hover:scale-105 transition-all"
             onClick={() => setShowReplyBox((v) => !v)}
           >
             Reply
           </button>
           {showReplyBox && (
-            <div className="mt-2">
+            <div className="mt-1">
               <textarea
-                className="border rounded w-full p-1"
+                className="input w-full body-sm mb-1 bg-card text-main placeholder:text-gray-500"
                 rows={1}
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 placeholder="Write a reply..."
               />
               <button
-                className="bg-blue-500 text-white px-2 py-1 rounded mt-1 text-xs"
+                className="button text-xs py-compact px-compact"
                 onClick={handleReply}
               >
                 Reply
@@ -93,7 +109,14 @@ const Comment: React.FC<CommentProps> = ({
       </div>
       {/* Render replies indented */}
       {replies && replies.length > 0 && (
-        <div className="ml-10">
+        <div
+          className={`relative ml-6 mt-2 pl-4 border-l-4 ${getNestClass(
+            level + 1
+          )} animate-fade-in`}
+          style={{ marginLeft: `${Math.min(level + 1, 4) * 16}px` }}
+        >
+          {/* Reply indicator arrow */}
+          <div className="absolute -left-3 top-4 w-3 h-3 bg-accent rotate-45 rounded-sm shadow-sm" />
           {replies.map((reply, idx) => (
             <Comment
               key={reply.id || idx}
@@ -103,6 +126,7 @@ const Comment: React.FC<CommentProps> = ({
               replies={reply.replies}
               onReply={onReply}
               commentId={reply.id}
+              level={level + 1}
             />
           ))}
         </div>
