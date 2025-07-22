@@ -230,10 +230,10 @@ const Post = ({ data }: { data: PostType }) => {
           {(options || []).map((option: any, index: number) => (
             <div key={option.id} className="flex flex-col gap-1">
               <button
-                className={`rounded-md py-compact px-compact body-lg font-medium transition-all duration-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 text-sm border flex items-center gap-2
+                className={`rounded-md py-compact px-compact body-lg font-medium transition-all duration-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-offset-2 text-sm border flex items-center gap-2
                   ${
                     option.id == clickedOption
-                      ? "bg-accent text-white border-accent"
+                      ? "bg-blue-700 text-white border-blue-700"
                       : "bg-accent/10 text-main border-accent/20 hover:bg-accent/20"
                   }
                   hover:scale-105 active:scale-95`}
@@ -252,7 +252,7 @@ const Post = ({ data }: { data: PostType }) => {
               {isClicked && (
                 <div className="w-full h-2 bg-accent/10 rounded overflow-hidden mt-0.5">
                   <div
-                    className="h-full bg-accent transition-all duration-700"
+                    className="h-full bg-blue-700 transition-all duration-700"
                     style={{ width: `${getPercentages()[index]}%` }}
                   />
                 </div>

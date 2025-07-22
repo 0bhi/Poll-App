@@ -30,7 +30,7 @@ export default function RootLayout({
                   <Homebar />
                   {/* Theme toggle button (sidebar/desktop) */}
                   <button
-                    className="absolute top-4 right-4 bg-accent text-white rounded-md p-2 shadow-sm hover:bg-accent-hover transition-all flex items-center gap-2"
+                    className="absolute top-4 right-4 bg-blue-700 text-white rounded-md p-2 shadow-sm hover:bg-blue-800 transition-all flex items-center gap-2"
                     onClick={toggleTheme}
                     aria-label="Toggle theme"
                   >

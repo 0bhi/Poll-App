@@ -124,20 +124,12 @@ const Homebar = () => {
                 return (
                   <button
                     key={item.label}
-                    className={`flex items-center gap-2 px-compact py-compact rounded-md text-sm transition-all font-medium shadow-sm
-                      ${
-                        isActive
-                          ? "bg-accent text-white"
-                          : "hover:bg-accent/10 text-blue-900"
-                      }
+                    className={`flex items-center text-white gap-2 px-compact py-compact rounded-md text-xl transition-all font-medium shadow-sm
+                      ${isActive ? "bg-blue-700" : ""}
                     `}
                     onClick={() => router.push(item.href)}
                   >
-                    <IconComponent
-                      className={`icon ${
-                        isActive ? "text-white" : "text-accent"
-                      }`}
-                    />
+                    <IconComponent className="text-white icon" />
                     {item.label}
                   </button>
                 );
@@ -153,7 +145,10 @@ const Homebar = () => {
             >
               <Icons.FaPlus className="text-2xl" />
             </button>
-            <button className="mt-6 button w-full" onClick={() => signOut()}>
+            <button
+              className="mt-6 w-full bg-blue-700 text-white rounded-md font-bold py-2 px-4 hover:bg-blue-800 transition-all"
+              onClick={() => signOut()}
+            >
               Sign out
             </button>
           </div>
