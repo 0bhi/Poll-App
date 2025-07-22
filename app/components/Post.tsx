@@ -52,10 +52,8 @@ const Post = ({ data }: { data: PostType }) => {
         setProfilePicUrl(userRes.data.profilePicture);
       } else {
         const defaultProfilePic = "https://api.dicebear.com/7.x/identicon/svg";
-
         setProfilePicUrl(defaultProfilePic);
       }
-      // If post has a createdAt, set it (for demo, use now)
       setCreatedAt(userRes.data.createdAt || new Date().toISOString());
 
       if (session) {
@@ -67,6 +65,20 @@ const Post = ({ data }: { data: PostType }) => {
           if (voteRes.data.vote.user_id === parseInt(session.user?.id)) {
             setIsClicked(true);
           }
+        }
+        // Fetch upvote/downvote status
+        const postVoteRes = await axios.get("/api/postVote", {
+          params: { post_id: id, user_id: session.user?.id },
+        });
+        if (postVoteRes.data.type === "UPVOTE") {
+          setUpvoted(true);
+          setDownvoted(false);
+        } else if (postVoteRes.data.type === "DOWNVOTE") {
+          setUpvoted(false);
+          setDownvoted(true);
+        } else {
+          setUpvoted(false);
+          setDownvoted(false);
         }
       }
     } catch (error) {
@@ -130,23 +142,26 @@ const Post = ({ data }: { data: PostType }) => {
     if (downvoted) {
       setDownvoted(false);
       setUpvoted(true);
-      await axios.post("/api/upvote", {
+      await axios.post("/api/postVote", {
         user_id: session?.user.id,
         post_id: id,
+        type: "UPVOTE",
       });
       return;
     }
     if (!upvoted) {
       setUpvoted(true);
-      await axios.post("/api/upvote", {
+      await axios.post("/api/postVote", {
         user_id: session?.user.id,
         post_id: id,
+        type: "UPVOTE",
       });
     } else {
       setUpvoted(false);
-      await axios.post("/api/remove-upvote", {
+      await axios.post("/api/postVote", {
         user_id: session?.user.id,
         post_id: id,
+        type: "REMOVE",
       });
     }
     // Optionally, fetch new upvote/downvote counts here and update state
@@ -160,23 +175,26 @@ const Post = ({ data }: { data: PostType }) => {
     if (upvoted) {
       setUpvoted(false);
       setDownvoted(true);
-      await axios.post("/api/downvote", {
+      await axios.post("/api/postVote", {
         user_id: session?.user.id,
         post_id: id,
+        type: "DOWNVOTE",
       });
       return;
     }
     if (!downvoted) {
       setDownvoted(true);
-      await axios.post("/api/downvote", {
+      await axios.post("/api/postVote", {
         user_id: session?.user.id,
         post_id: id,
+        type: "DOWNVOTE",
       });
     } else {
       setDownvoted(false);
-      await axios.post("/api/remove-downvote", {
+      await axios.post("/api/postVote", {
         user_id: session?.user.id,
         post_id: id,
+        type: "REMOVE",
       });
     }
     // Optionally, fetch new upvote/downvote counts here and update state
