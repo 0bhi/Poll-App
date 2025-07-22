@@ -201,7 +201,7 @@ const Post = ({ data }: { data: PostType }) => {
   }
 
   return (
-    <div className="card group transition-all duration-300 ease-in-out cursor-pointer rounded-md shadow-sm bg-card text-main hover:shadow-lg hover:-translate-y-0.5">
+    <div className="card group transition-all duration-300 ease-in-out cursor-pointer rounded-md shadow-sm bg-card text-main hover:shadow-lg hover:-translate-y-0.5 mx-4">
       {/* Header: Avatar + User Info */}
       <div className="flex items-center gap-3 mb-2">
         <div className="avatar overflow-hidden bg-accent/20">
