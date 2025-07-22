@@ -134,8 +134,8 @@ export default function Notificationsbar() {
   }, [session.data?.user.id]);
 
   return (
-    <div className="bg-card border-l-2 h-screen border-gray-200">
-      <div className="text-accent text-center font-semibold text-2xl py-2 border-b-2 border-gray-200 bg-card">
+    <div className="bg-card h-screen">
+      <div className="text-accent text-center font-semibold text-2xl py-2 bg-card">
         Notifications
       </div>
       <div className="p-2">

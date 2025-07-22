@@ -26,7 +26,7 @@ export default function RootLayout({
           <div className="flex h-screen overflow-hidden">
             {pathname !== "/signup" ? (
               <>
-                <div className="w-1/4 border-r-2 border-gray-200 relative">
+                <div className="w-1/4 relative">
                   <Homebar />
                   {/* Theme toggle button (sidebar/desktop) */}
                   <button
