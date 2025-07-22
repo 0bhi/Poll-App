@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useSession, signIn } from "next-auth/react";
-import { FaRegComment, FaCheck } from "react-icons/fa";
+import {
+  FaRegComment,
+  FaCheck,
+  FaRegBookmark,
+  FaShareAlt,
+} from "react-icons/fa";
 import { formatDistanceToNow } from "date-fns";
 import {
   BiDownvote,
@@ -19,13 +24,6 @@ interface PostType {
   user_id: string;
 }
 
-const EMOJI_LIST = [
-  { emoji: "👍", label: "Like" },
-  { emoji: "❤️", label: "Love" },
-  { emoji: "😂", label: "Funny" },
-  { emoji: "🎉", label: "Celebrate" },
-];
-
 const Post = ({ data }: { data: PostType }) => {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -38,8 +36,6 @@ const Post = ({ data }: { data: PostType }) => {
   const [clickedOption, setClickedOption] = useState(null);
   const [upvoted, setUpvoted] = useState(false);
   const [downvoted, setDownvoted] = useState(false);
-  const [reactions, setReactions] = useState<{ [key: string]: number }>({});
-  const [userReaction, setUserReaction] = useState<string | null>(null);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
 
   const { id, text, options = [], user_id } = data; // fallback to []
@@ -186,13 +182,6 @@ const Post = ({ data }: { data: PostType }) => {
     // Optionally, fetch new upvote/downvote counts here and update state
   };
 
-  // Emoji reaction handler (local state demo)
-  const handleReaction = (emoji: string) => {
-    if (userReaction === emoji) return;
-    setUserReaction(emoji);
-    setReactions((prev) => ({ ...prev, [emoji]: (prev[emoji] || 0) + 1 }));
-  };
-
   // Helper to calculate poll percentages
   function getPercentages() {
     const total = votes.reduce((a, b) => a + b, 0);
@@ -204,18 +193,21 @@ const Post = ({ data }: { data: PostType }) => {
     <div className="card group transition-all duration-300 ease-in-out cursor-pointer rounded-md shadow-sm bg-card text-main hover:shadow-lg hover:-translate-y-0.5 mx-4">
       {/* Header: Avatar + User Info */}
       <div className="flex items-center gap-3 mb-2">
-        <div className="avatar overflow-hidden bg-accent/20">
+        <div
+          className="avatar overflow-hidden bg-accent/20"
+          style={{ width: 42, height: 42 }}
+        >
           <Image
             src={profilePicUrl}
             alt="ProfilePic"
             className="object-cover"
-            width={36}
-            height={36}
+            width={42}
+            height={42}
           />
         </div>
-        <div className="flex flex-col">
-          <span className="font-semibold text-sm leading-tight">{name}</span>
-          <span className="text-xs text-gray-400">@{username}</span>
+        <div className="flex gap-2 ">
+          <span className="font-semibold text-md">{name}</span>
+          <span className="text-md text-gray-400">@{username}</span>
         </div>
         {createdAt && (
           <span className="ml-auto text-xs text-gray-500">
@@ -225,7 +217,7 @@ const Post = ({ data }: { data: PostType }) => {
       </div>
       {/* Content */}
       <div className="mb-3">
-        <div className="body-lg text-sm leading-relaxed mb-2">{text}</div>
+        <div className="text-lg leading-relaxed mb-4">{text}</div>
         <div className="grid grid-cols-2 gap-2">
           {(options || []).map((option: any, index: number) => (
             <div key={option.id} className="flex flex-col gap-1">
@@ -266,70 +258,55 @@ const Post = ({ data }: { data: PostType }) => {
           ))}
         </div>
       </div>
-      {/* Divider above actions */}
-      <div className="border-t border-accent/10 my-2" />
       {/* Actions Row */}
-      <div className="flex items-center justify-between px-1 py-1">
-        <div className="flex gap-4">
-          <button
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              handleUpvote();
-            }}
-            className={`icon text-accent hover:scale-110 active:scale-95 transition-transform ${
-              upvoted ? "font-bold" : ""
-            }`}
-            aria-label="Upvote"
-          >
-            {upvoted ? <BiSolidUpvote /> : <BiUpvote />}
-          </button>
-          <button
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              handleDownvote();
-            }}
-            className={`icon text-red-500 hover:scale-110 active:scale-95 transition-transform ${
-              downvoted ? "font-bold" : ""
-            }`}
-            aria-label="Downvote"
-          >
-            {downvoted ? <BiSolidDownvote /> : <BiDownvote />}
-          </button>
-          <button
-            onClick={() => {
-              router.push("/post");
-            }}
-            className="icon text-accent hover:scale-110 active:scale-95 transition-transform"
-            aria-label="Comment"
-          >
-            <FaRegComment />
-          </button>
-        </div>
-        {/* Emoji reactions */}
-        <div className="flex gap-2">
-          {EMOJI_LIST.map(({ emoji, label }) => (
-            <button
-              key={emoji}
-              className={`text-lg px-2 py-1 rounded-md transition-all duration-150 hover:bg-accent/10 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 ${
-                userReaction === emoji
-                  ? "scale-110 bg-accent text-white shadow-sm"
-                  : "bg-accent/10 text-main"
-              }`}
-              aria-label={label}
-              onClick={() => handleReaction(emoji)}
-              disabled={!!userReaction}
-            >
-              <span role="img" aria-label={label} className="align-middle">
-                {emoji}
-              </span>
-              <span className="ml-1 text-xs font-semibold">
-                {reactions[emoji] || 0}
-              </span>
-            </button>
-          ))}
-        </div>
+      <div className="flex items-center justify-around px-1 py-1 gap-4">
+        <button
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            handleUpvote();
+          }}
+          className={`icon text-blue-700 hover:scale-110 active:scale-95 transition-transform ${
+            upvoted ? "font-bold" : ""
+          }`}
+          aria-label="Upvote"
+        >
+          {upvoted ? <BiSolidUpvote /> : <BiUpvote />}
+        </button>
+        <button
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            handleDownvote();
+          }}
+          className={`icon text-red-500 hover:scale-110 active:scale-95 transition-transform ${
+            downvoted ? "font-bold" : ""
+          }`}
+          aria-label="Downvote"
+        >
+          {downvoted ? <BiSolidDownvote /> : <BiDownvote />}
+        </button>
+        <button
+          onClick={() => {
+            router.push("/post");
+          }}
+          className="icon text-accent hover:scale-110 active:scale-95 transition-transform"
+          aria-label="Comment"
+        >
+          <FaRegComment />
+        </button>
+        <button
+          className="icon text-accent hover:scale-110 active:scale-95 transition-transform"
+          aria-label="Bookmark"
+        >
+          <FaRegBookmark />
+        </button>
+        <button
+          className="icon text-accent hover:scale-110 active:scale-95 transition-transform"
+          aria-label="Share"
+        >
+          <FaShareAlt />
+        </button>
       </div>
     </div>
   );
@@ -338,7 +315,7 @@ const Post = ({ data }: { data: PostType }) => {
 // Skeleton loader for posts
 export function PostSkeleton() {
   return (
-    <div className="card animate-pulse flex gap-4 items-start">
+    <div className="card animate-pulse flex gap-4 items-start mx-4">
       <div className="w-14 h-14 rounded-full bg-gray-200 dark:bg-gray-700" />
       <div className="flex-1 space-y-3">
         <div className="h-4 w-1/3 bg-gray-200 dark:bg-gray-700 rounded" />
