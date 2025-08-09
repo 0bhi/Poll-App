@@ -1,8 +1,13 @@
-import React from "react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useSession, signIn } from "next-auth/react";
-import { FaRegComment } from "react-icons/fa";
+import {
+  FaRegComment,
+  FaCheck,
+  FaRegBookmark,
+  FaShareAlt,
+} from "react-icons/fa";
+import { formatDistanceToNow } from "date-fns";
 import {
   BiDownvote,
   BiSolidDownvote,
@@ -31,6 +36,7 @@ const Post = ({ data }: { data: PostType }) => {
   const [clickedOption, setClickedOption] = useState(null);
   const [upvoted, setUpvoted] = useState(false);
   const [downvoted, setDownvoted] = useState(false);
+  const [createdAt, setCreatedAt] = useState<string | null>(null);
 
   const { id, text, options = [], user_id } = data; // fallback to []
 
@@ -46,9 +52,9 @@ const Post = ({ data }: { data: PostType }) => {
         setProfilePicUrl(userRes.data.profilePicture);
       } else {
         const defaultProfilePic = "https://api.dicebear.com/7.x/identicon/svg";
-
         setProfilePicUrl(defaultProfilePic);
       }
+      setCreatedAt(userRes.data.createdAt || new Date().toISOString());
 
       if (session) {
         const voteRes = await axios.get("/api/votes/vote", {
@@ -59,6 +65,20 @@ const Post = ({ data }: { data: PostType }) => {
           if (voteRes.data.vote.user_id === parseInt(session.user?.id)) {
             setIsClicked(true);
           }
+        }
+        // Fetch upvote/downvote status
+        const postVoteRes = await axios.get("/api/postVote", {
+          params: { post_id: id, user_id: session.user?.id },
+        });
+        if (postVoteRes.data.type === "UPVOTE") {
+          setUpvoted(true);
+          setDownvoted(false);
+        } else if (postVoteRes.data.type === "DOWNVOTE") {
+          setUpvoted(false);
+          setDownvoted(true);
+        } else {
+          setUpvoted(false);
+          setDownvoted(false);
         }
       }
     } catch (error) {
@@ -122,23 +142,26 @@ const Post = ({ data }: { data: PostType }) => {
     if (downvoted) {
       setDownvoted(false);
       setUpvoted(true);
-      await axios.post("/api/upvote", {
+      await axios.post("/api/postVote", {
         user_id: session?.user.id,
         post_id: id,
+        type: "UPVOTE",
       });
       return;
     }
     if (!upvoted) {
       setUpvoted(true);
-      await axios.post("/api/upvote", {
+      await axios.post("/api/postVote", {
         user_id: session?.user.id,
         post_id: id,
+        type: "UPVOTE",
       });
     } else {
       setUpvoted(false);
-      await axios.post("/api/remove-upvote", {
+      await axios.post("/api/postVote", {
         user_id: session?.user.id,
         post_id: id,
+        type: "REMOVE",
       });
     }
     // Optionally, fetch new upvote/downvote counts here and update state
@@ -152,115 +175,182 @@ const Post = ({ data }: { data: PostType }) => {
     if (upvoted) {
       setUpvoted(false);
       setDownvoted(true);
-      await axios.post("/api/downvote", {
+      await axios.post("/api/postVote", {
         user_id: session?.user.id,
         post_id: id,
+        type: "DOWNVOTE",
       });
       return;
     }
     if (!downvoted) {
       setDownvoted(true);
-      await axios.post("/api/downvote", {
+      await axios.post("/api/postVote", {
         user_id: session?.user.id,
         post_id: id,
+        type: "DOWNVOTE",
       });
     } else {
       setDownvoted(false);
-      await axios.post("/api/remove-downvote", {
+      await axios.post("/api/postVote", {
         user_id: session?.user.id,
         post_id: id,
+        type: "REMOVE",
       });
     }
     // Optionally, fetch new upvote/downvote counts here and update state
   };
 
-  return (
-    <div className="flex bg-white shadow-lg p-4 space-x-4 m-4 rounded-lg hover:shadow-xl transition-all duration-300 ease-in-out">
-      <div
-        className="w-14 h-14 rounded-full overflow-hidden cursor-pointer"
-        onClick={() => router.push(`/${username}`)}
-      >
-        <Image
-          src={profilePicUrl}
-          alt="ProfilePic"
-          className="object-cover scale-125"
-          width={64}
-          height={64}
-        />
-      </div>
+  // Helper to calculate poll percentages
+  function getPercentages() {
+    const total = votes.reduce((a, b) => a + b, 0);
+    if (total === 0) return options.map(() => 0);
+    return votes.map((v) => Math.round((v / total) * 100));
+  }
 
-      <div onClick={() => router.push(`/post/${id}`)} className="w-full">
-        <div className="flex gap-2 pl-2">
-          <h1
-            onClick={(event) => {
-              event.stopPropagation();
-              router.push(`/${username}`);
-            }}
-            className="hover:underline cursor-pointer"
-          >
-            {name}
-          </h1>
-          <p
-            onClick={(event) => {
-              event.stopPropagation();
-              router.push(`/${username}`);
-            }}
-            className="text-gray-400 cursor-pointer"
-          >
-            {"@" + username}
-          </p>
+  return (
+    <div className="card group transition-all duration-300 ease-in-out cursor-pointer rounded-md shadow-sm bg-card text-main hover:shadow-lg hover:-translate-y-0.5 mx-4">
+      {/* Header: Avatar + User Info */}
+      <div className="flex items-center gap-3 mb-2">
+        <div
+          className="avatar overflow-hidden bg-accent/20"
+          style={{ width: 42, height: 42 }}
+        >
+          <Image
+            src={profilePicUrl}
+            alt="ProfilePic"
+            className="object-cover"
+            width={42}
+            height={42}
+          />
         </div>
-        <div className="p-2">{text}</div>
+        <div className="flex gap-2 ">
+          <span className="font-semibold text-md">{name}</span>
+          <span className="text-md text-gray-400">@{username}</span>
+        </div>
+        {createdAt && (
+          <span className="ml-auto text-xs text-gray-500">
+            {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
+          </span>
+        )}
+      </div>
+      {/* Content */}
+      <div className="mb-3">
+        <div className="text-lg leading-relaxed mb-4">{text}</div>
         <div className="grid grid-cols-2 gap-2">
           {(options || []).map((option: any, index: number) => (
-            <button
-              key={option.id}
-              className={` ${
-                option.id == clickedOption ? "bg-blue-700" : "bg-blue-500"
-              } text-white rounded-md p-2`}
-              onClick={(event) => {
-                event.stopPropagation();
-                onChoice(option, index);
-              }}
-              disabled={isClicked}
-            >
-              {`${option.text} ${votes[index]}`}
-            </button>
+            <div key={option.id} className="flex flex-col gap-1">
+              <button
+                className={`rounded-md py-compact px-compact body-lg font-medium transition-all duration-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-offset-2 text-sm border flex items-center gap-2
+                  ${
+                    option.id == clickedOption
+                      ? "bg-blue-700 text-white border-blue-700"
+                      : "bg-accent/10 text-main border-accent/20 hover:bg-accent/20"
+                  }
+                  hover:scale-105 active:scale-95`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onChoice(option, index);
+                }}
+                disabled={isClicked}
+              >
+                {option.id == clickedOption && (
+                  <FaCheck className="icon mr-1" />
+                )}
+                {`${option.text} ${votes[index]}`}
+              </button>
+              {/* Poll result bar */}
+              {isClicked && (
+                <div className="w-full h-2 bg-accent/10 rounded overflow-hidden mt-0.5">
+                  <div
+                    className="h-full bg-blue-700 transition-all duration-700"
+                    style={{ width: `${getPercentages()[index]}%` }}
+                  />
+                </div>
+              )}
+              {isClicked && (
+                <div className="text-xs text-gray-600 mt-0.5 text-right">
+                  {getPercentages()[index]}%
+                </div>
+              )}
+            </div>
           ))}
         </div>
-        <div className="flex mt-2 mx-2 p-2 justify-around">
-          <button
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              handleUpvote();
-            }}
-            className="text-blue-700 text-xl"
-          >
-            {upvoted ? <BiSolidUpvote /> : <BiUpvote />}
-          </button>
-          <button
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              handleDownvote();
-            }}
-            className="text-red-700 text-xl"
-          >
-            {downvoted ? <BiSolidDownvote /> : <BiDownvote />}
-          </button>
-          <button
-            onClick={() => {
-              router.push("/post");
-            }}
-            className="text-blue-700 text-xl"
-          >
-            <FaRegComment />
-          </button>
-        </div>
+      </div>
+      {/* Actions Row */}
+      <div className="flex items-center justify-around px-1 py-1 gap-4">
+        <button
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            handleUpvote();
+          }}
+          className={`icon text-blue-700 hover:scale-110 active:scale-95 transition-transform ${
+            upvoted ? "font-bold" : ""
+          }`}
+          aria-label="Upvote"
+        >
+          {upvoted ? <BiSolidUpvote /> : <BiUpvote />}
+        </button>
+        <button
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            handleDownvote();
+          }}
+          className={`icon text-red-500 hover:scale-110 active:scale-95 transition-transform ${
+            downvoted ? "font-bold" : ""
+          }`}
+          aria-label="Downvote"
+        >
+          {downvoted ? <BiSolidDownvote /> : <BiDownvote />}
+        </button>
+        <button
+          onClick={() => {
+            router.push("/post");
+          }}
+          className="icon text-accent hover:scale-110 active:scale-95 transition-transform"
+          aria-label="Comment"
+        >
+          <FaRegComment />
+        </button>
+        <button
+          className="icon text-accent hover:scale-110 active:scale-95 transition-transform"
+          aria-label="Bookmark"
+        >
+          <FaRegBookmark />
+        </button>
+        <button
+          className="icon text-accent hover:scale-110 active:scale-95 transition-transform"
+          aria-label="Share"
+        >
+          <FaShareAlt />
+        </button>
       </div>
     </div>
   );
 };
+
+// Skeleton loader for posts
+export function PostSkeleton() {
+  return (
+    <div className="card animate-pulse flex gap-4 items-start mx-4">
+      <div className="w-14 h-14 rounded-full bg-gray-200 dark:bg-gray-700" />
+      <div className="flex-1 space-y-3">
+        <div className="h-4 w-1/3 bg-gray-200 dark:bg-gray-700 rounded" />
+        <div className="h-3 w-1/4 bg-gray-100 dark:bg-gray-800 rounded" />
+        <div className="h-5 w-3/4 bg-gray-200 dark:bg-gray-700 rounded" />
+        <div className="grid grid-cols-2 gap-2 mt-2">
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded" />
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded" />
+        </div>
+        <div className="flex gap-4 mt-4">
+          <div className="h-6 w-6 bg-gray-200 dark:bg-gray-700 rounded-full" />
+          <div className="h-6 w-6 bg-gray-200 dark:bg-gray-700 rounded-full" />
+          <div className="h-6 w-6 bg-gray-200 dark:bg-gray-700 rounded-full" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default Post;

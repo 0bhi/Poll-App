@@ -2,7 +2,7 @@
 import Editbox from "../app/components/Editbox";
 import { useState, useEffect } from "react";
 import axios from "axios";
-import Post from "../app/components/Post";
+import Post, { PostSkeleton } from "../app/components/Post";
 import InfiniteScroll from "react-infinite-scroll-component";
 
 interface PostType {
@@ -15,8 +15,10 @@ interface PostType {
 export default function Feed() {
   const [posts, setPosts] = useState<PostType[]>([]);
   const [cursor, setCursor] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
+    setLoading(true);
     const res = await axios.get("/api/posts", {
       params: {
         take: 10,
@@ -31,6 +33,7 @@ export default function Feed() {
       setPosts(newPosts);
     }
     setCursor(res.data.nextCursor);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -42,21 +45,29 @@ export default function Feed() {
   };
 
   return (
-    <div className="  h-full overflow-y-auto scrollbar-hide">
+    <div className="h-full overflow-y-auto scrollbar-hide">
       <Editbox onPostCreated={handleAddPost} />
-      <InfiniteScroll
-        dataLength={posts.length}
-        next={() => fetchData()}
-        hasMore={!!cursor}
-        loader={<div className="text-center text-gray-500">Loading...</div>}
-        endMessage={
-          <div className="text-center text-gray-500">No more posts</div>
-        }
-      >
-        {posts.map((post, index) => (
-          <Post key={index} data={post} />
-        ))}
-      </InfiniteScroll>
+      {loading && posts.length === 0 ? (
+        <>
+          <PostSkeleton />
+          <PostSkeleton />
+          <PostSkeleton />
+        </>
+      ) : (
+        <InfiniteScroll
+          dataLength={posts.length}
+          next={() => fetchData()}
+          hasMore={!!cursor}
+          loader={<PostSkeleton />}
+          endMessage={
+            <div className="text-center text-gray-500">No more posts</div>
+          }
+        >
+          {posts.map((post, index) => (
+            <Post key={index} data={post} />
+          ))}
+        </InfiniteScroll>
+      )}
     </div>
   );
 }

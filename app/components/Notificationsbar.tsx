@@ -66,32 +66,46 @@ function NotificationItem({ notif }: { notif: NotificationType }) {
     }
   }
   return (
-    <div className="flex items-center bg-white rounded-lg shadow p-3 mb-2 hover:bg-blue-50 transition cursor-pointer">
-      <div className="flex -space-x-2 mr-3">
+    <div className="card flex items-center transition cursor-pointer p-2 mb-1 rounded-md shadow-sm bg-card text-main hover:bg-accent/10 dark:hover:bg-accent/20">
+      <div className="flex -space-x-1 mr-2">
         {actors.slice(0, 3).map((actor) => (
           <Image
             key={actor.id}
             src={actor.profilePicture}
             alt={actor.name}
-            width={32}
-            height={32}
-            className="rounded-full border-2 border-white"
+            width={28}
+            height={28}
+            className="avatar border border-white"
           />
         ))}
-        {actors.length === 0 && (
-          <div className="w-10 h-10 rounded-full bg-gray-200" />
-        )}
+        {actors.length === 0 && <div className="avatar bg-gray-200" />}
       </div>
       <div className="flex-1">
-        <span className="font-bold">{displayText}</span>
+        <span className="heading-3 text-sm">{displayText}</span>
         {notif.post_text && (
-          <span className="text-gray-800 font-medium">
+          <span className="text-gray-800 body-sm text-xs">
             : "{notif.post_text}"
           </span>
         )}
-        <div className="text-xs text-gray-400">{timeAgo(notif.createdAt)}</div>
+        <div className="text-xs text-gray-400 body-sm">
+          {timeAgo(notif.createdAt)}
+        </div>
       </div>
-      <div className="ml-2">{getIcon(notif.type)}</div>
+      <div className="ml-2 icon accent">{getIcon(notif.type)}</div>
+    </div>
+  );
+}
+
+// Skeleton loader for notifications
+export function NotificationSkeleton() {
+  return (
+    <div className="card animate-pulse flex items-center p-3 mb-2 gap-3">
+      <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700" />
+      <div className="flex-1 space-y-2">
+        <div className="h-4 w-1/2 bg-gray-200 dark:bg-gray-700 rounded" />
+        <div className="h-3 w-1/3 bg-gray-100 dark:bg-gray-800 rounded" />
+      </div>
+      <div className="ml-2 w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700" />
     </div>
   );
 }
@@ -99,27 +113,39 @@ function NotificationItem({ notif }: { notif: NotificationType }) {
 export default function Notificationsbar() {
   const session: any = useSession();
   const [notifs, setNotifs] = useState<NotificationType[]>([]);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     const fetchNotifs = async (userId: string) => {
+      setLoading(true);
       try {
         const res = await axios.get("/api/notifications", {
           params: { user_id: userId },
         });
-        setNotifs(res.data.notifications);
+        setNotifs(
+          Array.isArray(res.data.notifications) ? res.data.notifications : []
+        );
       } catch (error) {
-        console.log(error);
+        setNotifs([]);
+        setLoading(false);
       }
+      setLoading(false);
     };
     fetchNotifs(session?.data?.user?.id);
   }, [session.data?.user.id]);
 
   return (
-    <div className="border-l-2 h-screen border-gray-200 bg-gray-50">
-      <div className="text-blue-700 text-center font-semibold text-2xl py-2 border-b-2 border-gray-200">
+    <div className="bg-card h-screen">
+      <div className="text-accent text-center font-semibold text-2xl py-2 bg-card">
         Notifications
       </div>
       <div className="p-2">
-        {notifs && notifs.length > 0 ? (
+        {loading && (!notifs || notifs.length === 0) ? (
+          <>
+            <NotificationSkeleton />
+            <NotificationSkeleton />
+            <NotificationSkeleton />
+          </>
+        ) : notifs && notifs.length > 0 ? (
           notifs.map((notif) => (
             <NotificationItem notif={notif} key={notif.id} />
           ))
