@@ -1,21 +1,3 @@
-import { Server as NetServer } from "http";
-import { Server as SocketIOServer } from "socket.io";
-import { NextApiResponse } from "next";
-
-export type NextApiResponseServerIO = NextApiResponse & {
-  socket: {
-    server: NetServer & {
-      io: SocketIOServer;
-    };
-  };
-};
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 // Socket event types
 export interface ServerToClientEvents {
   message: (message: any) => void;
@@ -32,6 +14,7 @@ export interface ServerToClientEvents {
 }
 
 export interface ClientToServerEvents {
+  authenticate: (data: { userId: number; username: string }) => void;
   join_conversation: (conversationId: number) => void;
   leave_conversation: (conversationId: number) => void;
   send_message: (data: {
