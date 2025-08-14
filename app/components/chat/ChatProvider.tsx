@@ -1,0 +1,244 @@
+"use client";
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { io, Socket } from 'socket.io-client';
+import { ServerToClientEvents, ClientToServerEvents } from '@/app/lib/socket';
+
+interface ChatContextType {
+  socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
+  conversations: Conversation[];
+  currentConversation: Conversation | null;
+  messages: Message[];
+  onlineUsers: Set<number>;
+  setCurrentConversation: (conversation: Conversation | null) => void;
+  sendMessage: (content: string, messageType?: string) => void;
+  markMessageAsRead: (messageId: number) => void;
+  startTyping: () => void;
+  stopTyping: () => void;
+  isTyping: boolean;
+  otherUserTyping: boolean;
+}
+
+interface Conversation {
+  id: number;
+  otherUser: {
+    id: number;
+    name: string;
+    username: string;
+    profilePicture: string;
+  };
+  lastMessage: Message | null;
+  unreadCount: number;
+  updatedAt: string;
+}
+
+interface Message {
+  id: number;
+  content: string;
+  messageType: string;
+  isRead: boolean;
+  createdAt: string;
+  sender: {
+    id: number;
+    name: string;
+    username: string;
+    profilePicture: string;
+  };
+}
+
+const ChatContext = createContext<ChatContextType | undefined>(undefined);
+
+export const useChat = () => {
+  const context = useContext(ChatContext);
+  if (!context) {
+    throw new Error('useChat must be used within a ChatProvider');
+  }
+  return context;
+};
+
+export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { data: session } = useSession();
+  const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<Set<number>>(new Set());
+  const [isTyping, setIsTyping] = useState(false);
+  const [otherUserTyping, setOtherUserTyping] = useState(false);
+
+  // Initialize socket connection
+  useEffect(() => {
+    if (session?.user?.id) {
+      const newSocket = io(process.env.NEXTAUTH_URL || 'http://localhost:3000');
+      
+      newSocket.on('connect', () => {
+        console.log('Connected to socket server');
+        newSocket.emit('authenticate', {
+          userId: parseInt(session.user.id),
+          username: session.user.username || session.user.name || '',
+        });
+      });
+
+      newSocket.on('message', (message: Message) => {
+        setMessages(prev => [...prev, message]);
+        
+        // Update conversation list with new message
+        setConversations(prev => 
+          prev.map(conv => 
+            conv.id === message.conversationId 
+              ? { ...conv, lastMessage: message, unreadCount: conv.unreadCount + 1 }
+              : conv
+          )
+        );
+      });
+
+      newSocket.on('typing_start', (data) => {
+        if (currentConversation?.id === data.conversationId) {
+          setOtherUserTyping(true);
+        }
+      });
+
+      newSocket.on('typing_stop', (data) => {
+        if (currentConversation?.id === data.conversationId) {
+          setOtherUserTyping(false);
+        }
+      });
+
+      newSocket.on('message_read', (data) => {
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === data.messageId ? { ...msg, isRead: true } : msg
+          )
+        );
+      });
+
+      newSocket.on('user_online', (userId) => {
+        setOnlineUsers(prev => new Set([...prev, userId]));
+      });
+
+      newSocket.on('user_offline', (userId) => {
+        setOnlineUsers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(userId);
+          return newSet;
+        });
+      });
+
+      setSocket(newSocket);
+
+      return () => {
+        newSocket.close();
+      };
+    }
+  }, [session]);
+
+  // Fetch conversations
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchConversations();
+    }
+  }, [session]);
+
+  // Join conversation room when current conversation changes
+  useEffect(() => {
+    if (socket && currentConversation) {
+      socket.emit('join_conversation', currentConversation.id);
+      fetchMessages(currentConversation.id);
+    }
+  }, [socket, currentConversation]);
+
+  const fetchConversations = async () => {
+    try {
+      const response = await fetch(`/api/conversations?user_id=${session?.user?.id}`);
+      const data = await response.json();
+      setConversations(data.conversations || []);
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+    }
+  };
+
+  const fetchMessages = async (conversationId: number) => {
+    try {
+      const response = await fetch(`/api/messages?conversation_id=${conversationId}`);
+      const data = await response.json();
+      setMessages(data.messages || []);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
+  };
+
+  const sendMessage = async (content: string, messageType: string = 'TEXT') => {
+    if (!socket || !currentConversation || !session?.user?.id) return;
+
+    try {
+      const response = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: currentConversation.id,
+          senderId: session.user.id,
+          content,
+          messageType,
+        }),
+      });
+
+      if (response.ok) {
+        // Message will be added via socket event
+        stopTyping();
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
+  };
+
+  const markMessageAsRead = async (messageId: number) => {
+    if (!socket || !currentConversation) return;
+
+    try {
+      await fetch('/api/messages', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId, isRead: true }),
+      });
+
+      socket.emit('message_read', { messageId, conversationId: currentConversation.id });
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+    }
+  };
+
+  const startTyping = () => {
+    if (!socket || !currentConversation || isTyping) return;
+    
+    setIsTyping(true);
+    socket.emit('typing_start', currentConversation.id);
+  };
+
+  const stopTyping = () => {
+    if (!socket || !currentConversation || !isTyping) return;
+    
+    setIsTyping(false);
+    socket.emit('typing_stop', currentConversation.id);
+  };
+
+  const value: ChatContextType = {
+    socket,
+    conversations,
+    currentConversation,
+    messages,
+    onlineUsers,
+    setCurrentConversation,
+    sendMessage,
+    markMessageAsRead,
+    startTyping,
+    stopTyping,
+    isTyping,
+    otherUserTyping,
+  };
+
+  return (
+    <ChatContext.Provider value={value}>
+      {children}
+    </ChatContext.Provider>
+  );
+};

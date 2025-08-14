@@ -25,7 +25,7 @@ const homeBarContents = {
   messages: {
     icon: "FaEnvelope",
     label: "Messages",
-    href: "/messages",
+    href: "/chat",
   },
   settings: {
     icon: "FaCog",

@@ -32,6 +32,11 @@ model User {
 
   followers       Follows[]      @relation("followers")
   following       Follows[]      @relation("following")
+  
+  // Chat relations
+  conversationsAsParticipant1 Conversation[] @relation("ConversationParticipant1")
+  conversationsAsParticipant2 Conversation[] @relation("ConversationParticipant2")
+  messages                     Message[]
 }
 
 model Follows {
@@ -44,9 +49,49 @@ model Follows {
 
   @@unique([followerId, followingId])
 }
+
+model Conversation {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   
+  // For direct messages
+  participant1Id Int
+  participant2Id Int
+  
+  // For group chats (future expansion)
+  isGroupChat Boolean @default(false)
+  groupName   String?
+  
+  participant1 User @relation("ConversationParticipant1", fields: [participant1Id], references: [id])
+  participant2 User @relation("ConversationParticipant2", fields: [participant2Id], references: [id])
+  
+  messages Message[]
+  
+  @@unique([participant1Id, participant2Id])
+}
 
+model Message {
+  id             Int      @id @default(autoincrement())
+  content        String
+  messageType    MessageType @default(TEXT)
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  
+  conversationId Int
+  senderId       Int
+  
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id])
+}
 
+enum MessageType {
+  TEXT
+  IMAGE
+  POLL_LINK
+  SYSTEM
+}
+  
 model Post {
   id Int @id @default(autoincrement())
   text String
@@ -121,4 +166,5 @@ enum NotificationsType {
   COMMENT
   UPVOTE
   VOTE
+  MESSAGE
 }
