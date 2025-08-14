@@ -20,7 +20,7 @@ export default function LayoutContent({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-b from-gray-900 to-gray-800">
       <div className="w-1/4 relative">
         <Homebar />
         {/* Theme toggle button (sidebar/desktop) */}
@@ -39,8 +39,10 @@ export default function LayoutContent({
           </span>
         </button>
       </div>
-      <div className="w-1/2 ">{children}</div>
-      <div className="w-1/4">
+      <div className="w-1/2 bg-gradient-to-b from-gray-900 to-gray-800">
+        {children}
+      </div>
+      <div className="w-1/4 bg-gradient-to-b from-gray-900 to-gray-800">
         <Notificationsbar />
       </div>
     </div>

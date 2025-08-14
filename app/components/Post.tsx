@@ -236,17 +236,28 @@ const Post = ({ data }: { data: PostType }) => {
       {/* Content */}
       <div className="mb-3">
         <div className="text-lg leading-relaxed mb-4">{text}</div>
-        <div className="grid grid-cols-2 gap-2">
+
+        <div className="grid grid-cols-2 gap-3">
           {(options || []).map((option: any, index: number) => (
-            <div key={option.id} className="flex flex-col gap-1">
+            <div key={option.id} className="flex flex-col gap-2">
+              {/* Option number indicator for unvoted polls */}
+              {!isClicked && (
+                <div className="text-xs text-gray-500 font-medium mb-1">
+                  Option {index + 1}
+                </div>
+              )}
               <button
-                className={`rounded-md py-compact px-compact body-lg font-medium transition-all duration-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-offset-2 text-sm border flex items-center gap-2
-                  ${
-                    option.id == clickedOption
-                      ? "bg-blue-700 text-white border-blue-700"
-                      : "bg-accent/10 text-main border-accent/20 hover:bg-accent/20"
-                  }
-                  hover:scale-105 active:scale-95`}
+                className={`relative rounded-xl py-3 px-4 body-lg font-medium transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-offset-2 text-sm border-2 flex items-center gap-2 overflow-hidden group
+                   ${
+                     option.id == clickedOption
+                       ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white border-blue-600 shadow-lg transform scale-105"
+                       : "bg-gray-800 text-white border-gray-600 hover:border-blue-400 hover:bg-gray-700 hover:shadow-md hover:scale-102"
+                   }
+                   ${
+                     !isClicked
+                       ? "hover:scale-102 active:scale-98"
+                       : "cursor-default"
+                   }`}
                 onClick={(event) => {
                   event.stopPropagation();
                   onChoice(option, index);
@@ -254,22 +265,54 @@ const Post = ({ data }: { data: PostType }) => {
                 disabled={isClicked}
               >
                 {option.id == clickedOption && (
-                  <FaCheck className="icon mr-1" />
+                  <FaCheck className="icon mr-1 animate-pulse" />
                 )}
-                {`${option.text} ${votes[index]}`}
+                <span className="font-semibold">{option.text}</span>
+                <span
+                  className={`ml-auto text-xs ${
+                    option.id == clickedOption ? "opacity-90" : "opacity-60"
+                  }`}
+                >
+                  {votes[index]} votes
+                </span>
+
+                {/* Animated background for selected option */}
+                {option.id == clickedOption && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 animate-pulse-slow" />
+                )}
+
+                {/* Subtle hover effect for unselected options */}
+                {option.id != clickedOption && !isClicked && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-50/50 to-purple-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                )}
               </button>
-              {/* Poll result bar */}
-              {isClicked && (
-                <div className="w-full h-2 bg-accent/10 rounded overflow-hidden mt-0.5">
-                  <div
-                    className="h-full bg-blue-700 transition-all duration-700"
-                    style={{ width: `${getPercentages()[index]}%` }}
-                  />
+
+              {/* Enhanced poll result bar - always show when there are votes */}
+              {(votes[index] > 0 || isClicked) && (
+                <div className="space-y-1">
+                  <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden shadow-inner">
+                    <div
+                      className="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-1000 ease-out rounded-full relative"
+                      style={{ width: `${getPercentages()[index]}%` }}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse-slow" />
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-300 font-medium">
+                      {option.text}
+                    </span>
+                    <span className="text-blue-400 font-bold">
+                      {getPercentages()[index]}%
+                    </span>
+                  </div>
                 </div>
               )}
-              {isClicked && (
-                <div className="text-xs text-gray-600 mt-0.5 text-right">
-                  {getPercentages()[index]}%
+
+              {/* Show vote count even when no votes yet */}
+              {votes[index] === 0 && !isClicked && (
+                <div className="text-xs text-gray-400 text-center mt-1">
+                  0 votes
                 </div>
               )}
             </div>
@@ -334,19 +377,41 @@ const Post = ({ data }: { data: PostType }) => {
 export function PostSkeleton() {
   return (
     <div className="card animate-pulse flex gap-4 items-start mx-4">
-      <div className="w-14 h-14 rounded-full bg-gray-200 dark:bg-gray-700" />
-      <div className="flex-1 space-y-3">
-        <div className="h-4 w-1/3 bg-gray-200 dark:bg-gray-700 rounded" />
-        <div className="h-3 w-1/4 bg-gray-100 dark:bg-gray-800 rounded" />
-        <div className="h-5 w-3/4 bg-gray-200 dark:bg-gray-700 rounded" />
-        <div className="grid grid-cols-2 gap-2 mt-2">
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded" />
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded" />
+      {/* Avatar skeleton */}
+      <div className="w-12 h-12 rounded-full bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 animate-pulse-slow" />
+
+      <div className="flex-1 space-y-4">
+        {/* Header skeleton */}
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-24 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded animate-pulse-slow" />
+          <div className="h-3 w-16 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded animate-pulse-slow" />
+          <div className="h-3 w-20 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded animate-pulse-slow ml-auto" />
         </div>
-        <div className="flex gap-4 mt-4">
-          <div className="h-6 w-6 bg-gray-200 dark:bg-gray-700 rounded-full" />
-          <div className="h-6 w-6 bg-gray-200 dark:bg-gray-700 rounded-full" />
-          <div className="h-6 w-6 bg-gray-200 dark:bg-gray-700 rounded-full" />
+
+        {/* Content skeleton */}
+        <div className="space-y-2">
+          <div className="h-5 w-3/4 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded animate-pulse-slow" />
+          <div className="h-5 w-1/2 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded animate-pulse-slow" />
+        </div>
+
+        {/* Poll options skeleton */}
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="space-y-2">
+              <div className="h-12 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-xl animate-pulse-slow" />
+              <div className="h-3 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-full animate-pulse-slow" />
+            </div>
+          ))}
+        </div>
+
+        {/* Actions skeleton */}
+        <div className="flex gap-6 mt-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div
+              key={i}
+              className="h-6 w-6 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-full animate-pulse-slow"
+            />
+          ))}
         </div>
       </div>
     </div>
