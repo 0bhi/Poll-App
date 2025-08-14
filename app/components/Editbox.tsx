@@ -30,7 +30,7 @@ const Editbox = ({ onPostCreated }: { onPostCreated: (post: any) => void }) => {
 
   return (
     <form
-      className={`max-w-4xl mx-auto mx-4 my-4 px-4 rounded-2xl shadow-lg py-5 ${BLUE_BG} text-white flex flex-col gap-4`}
+      className={`max-w-4xl mx-4 my-4 px-4 rounded-2xl shadow-lg py-5 ${BLUE_BG} text-white flex flex-col gap-4`}
       style={{ minWidth: 320 }}
       onSubmit={handleSubmit}
     >
