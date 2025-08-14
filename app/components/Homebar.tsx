@@ -25,7 +25,7 @@ const homeBarContents = {
   messages: {
     icon: "FaEnvelope",
     label: "Messages",
-    href: "/messages",
+    href: "/chat",
   },
   settings: {
     icon: "FaCog",
@@ -45,26 +45,26 @@ const Homebar = () => {
 
   return (
     <>
-      <div className="h-screen flex flex-col justify-between bg-card text-main">
+      <div className="h-screen flex flex-col justify-between bg-gradient-to-b from-gray-900 to-gray-800 text-white">
         {session.status === "authenticated" ? (
           <div className="p-4 flex flex-col h-full">
             <div
               onClick={() => setIsProfileModalOpen(true)}
-              className="cursor-pointer"
+              className="cursor-pointer group"
             >
-              <div className="avatar overflow-hidden border-2 border-accent mx-auto shadow-sm bg-accent/20">
+              <div className="avatar overflow-hidden border-2 border-accent mx-auto shadow-lg bg-accent/20 hover:shadow-xl transition-all duration-300 group-hover:scale-105">
                 <Image
                   src={session?.data.user?.image}
                   alt="Profile"
-                  width={36}
-                  height={36}
+                  width={40}
+                  height={40}
                   className="object-cover"
                 />
               </div>
-              <div className="font-medium mt-2 text-center heading-3 text-sm">
+              <div className="font-semibold mt-3 text-center heading-3 text-sm group-hover:text-blue-400 transition-colors">
                 {session.data.user?.name}
               </div>
-              <div className="text-gray-500 text-center body-sm text-xs">
+              <div className="text-gray-400 text-center body-sm text-xs group-hover:text-gray-300 transition-colors">
                 {"@" + session.data.user?.username}
               </div>
             </div>
@@ -117,20 +117,30 @@ const Homebar = () => {
               </div>
             )}
             {/* Navigation */}
-            <div className="flex flex-col gap-1 mt-6">
+            <div className="flex flex-col gap-2 mt-8">
               {Object.values(homeBarContents).map((item) => {
                 const IconComponent = Icons[item.icon as keyof typeof Icons];
                 const isActive = pathname === item.href;
                 return (
                   <button
                     key={item.label}
-                    className={`flex items-center text-white gap-2 px-compact py-compact rounded-md text-xl transition-all font-medium shadow-sm
-                      ${isActive ? "bg-blue-700" : ""}
-                    `}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-lg transition-all duration-300 font-medium shadow-sm group
+                       ${
+                         isActive
+                           ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transform scale-105"
+                           : "text-gray-300 hover:bg-gray-700 hover:text-white hover:shadow-md"
+                       }
+                     `}
                     onClick={() => router.push(item.href)}
                   >
-                    <IconComponent className="text-white icon" />
-                    {item.label}
+                    <IconComponent
+                      className={`icon transition-all duration-300 ${
+                        isActive
+                          ? "text-white"
+                          : "text-gray-400 group-hover:text-blue-400"
+                      }`}
+                    />
+                    <span className="font-semibold">{item.label}</span>
                   </button>
                 );
               })}
@@ -146,7 +156,7 @@ const Homebar = () => {
               <Icons.FaPlus className="text-2xl" />
             </button>
             <button
-              className="mt-6 w-full bg-blue-700 text-white rounded-md font-bold py-2 px-4 hover:bg-blue-800 transition-all"
+              className="mt-6 w-full bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-bold py-3 px-4 hover:from-red-700 hover:to-red-800 transition-all shadow-lg hover:shadow-xl"
               onClick={() => signOut()}
             >
               Sign out

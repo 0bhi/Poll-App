@@ -66,7 +66,7 @@ function NotificationItem({ notif }: { notif: NotificationType }) {
     }
   }
   return (
-    <div className="card flex items-center transition cursor-pointer p-2 mb-1 rounded-md shadow-sm bg-card text-main hover:bg-accent/10 dark:hover:bg-accent/20">
+    <div className="card flex items-center transition cursor-pointer p-2 mb-1 rounded-md shadow-sm bg-gray-800 text-white hover:bg-gray-700 border border-gray-700">
       <div className="flex -space-x-1 mr-2">
         {actors.slice(0, 3).map((actor) => (
           <Image
@@ -83,7 +83,7 @@ function NotificationItem({ notif }: { notif: NotificationType }) {
       <div className="flex-1">
         <span className="heading-3 text-sm">{displayText}</span>
         {notif.post_text && (
-          <span className="text-gray-800 body-sm text-xs">
+          <span className="text-gray-300 body-sm text-xs">
             : "{notif.post_text}"
           </span>
         )}
@@ -134,8 +134,8 @@ export default function Notificationsbar() {
   }, [session.data?.user.id]);
 
   return (
-    <div className="bg-card h-screen">
-      <div className="text-accent text-center font-semibold text-2xl py-2 bg-card">
+    <div className="h-screen">
+      <div className="text-white text-center font-semibold text-2xl py-2">
         Notifications
       </div>
       <div className="p-2">
@@ -150,7 +150,7 @@ export default function Notificationsbar() {
             <NotificationItem notif={notif} key={notif.id} />
           ))
         ) : (
-          <div className="text-center text-gray-500">No notifications</div>
+          <div className="text-center text-gray-400">No notifications</div>
         )}
       </div>
     </div>
