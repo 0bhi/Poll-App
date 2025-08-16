@@ -45,29 +45,39 @@ export default function Feed() {
   };
 
   return (
-    <div className="h-full overflow-y-auto scrollbar-hide">
-      <Editbox onPostCreated={handleAddPost} />
-      {loading && posts.length === 0 ? (
-        <>
-          <PostSkeleton />
-          <PostSkeleton />
-          <PostSkeleton />
-        </>
-      ) : (
-        <InfiniteScroll
-          dataLength={posts.length}
-          next={() => fetchData()}
-          hasMore={!!cursor}
-          loader={<PostSkeleton />}
-          endMessage={
-            <div className="text-center text-gray-500">No more posts</div>
-          }
-        >
-          {posts.map((post, index) => (
-            <Post key={index} data={post} />
-          ))}
-        </InfiniteScroll>
-      )}
+    <div className="h-full overflow-y-auto scrollbar-hide pb-20 md:pb-0">
+      <div className="max-w-4xl mx-auto px-4 md:px-6">
+        <Editbox onPostCreated={handleAddPost} />
+        {loading && posts.length === 0 ? (
+          <div className="space-y-4">
+            <PostSkeleton />
+            <PostSkeleton />
+            <PostSkeleton />
+          </div>
+        ) : (
+          <InfiniteScroll
+            dataLength={posts.length}
+            next={() => fetchData()}
+            hasMore={!!cursor}
+            loader={
+              <div className="space-y-4 mt-4">
+                <PostSkeleton />
+                <PostSkeleton />
+              </div>
+            }
+            endMessage={
+              <div className="text-center text-gray-500 py-8 text-sm md:text-base">
+                No more posts
+              </div>
+            }
+            className="space-y-4"
+          >
+            {posts.map((post, index) => (
+              <Post key={index} data={post} />
+            ))}
+          </InfiniteScroll>
+        )}
+      </div>
     </div>
   );
 }

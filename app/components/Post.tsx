@@ -209,40 +209,47 @@ const Post = ({ data }: { data: PostType }) => {
 
   return (
     <div
-      className="card group transition-all duration-300 ease-in-out cursor-pointer rounded-md shadow-sm bg-card text-main hover:shadow-lg hover:-translate-y-0.5 mx-4"
+      className="card group transition-all duration-300 ease-in-out cursor-pointer rounded-md shadow-sm bg-card text-main hover:shadow-lg hover:-translate-y-0.5 w-full"
       onClick={() => router.push(`/post/${id}`)}
     >
       {/* Header: Avatar + User Info */}
-      <div className="flex items-center gap-3 mb-2">
+      <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-3">
         <div
-          className="avatar overflow-hidden bg-accent/20"
-          style={{ width: 42, height: 42 }}
+          className="avatar overflow-hidden bg-accent/20 flex-shrink-0"
+          style={{ width: 36, height: 36 }}
         >
           <Image
             src={profilePicUrl}
             alt="ProfilePic"
             className="object-cover"
-            width={42}
-            height={42}
+            width={36}
+            height={36}
           />
         </div>
-        <div className="flex gap-2 ">
-          <span className="font-semibold text-md">{name}</span>
-          <span className="text-md text-gray-400">@{username}</span>
+        <div className="flex flex-col md:flex-row md:gap-2 min-w-0 flex-1">
+          <span className="font-semibold text-sm md:text-base truncate">
+            {name}
+          </span>
+          <span className="text-sm md:text-base text-gray-400 truncate">
+            @{username}
+          </span>
         </div>
         {createdAt && (
-          <span className="ml-auto text-xs text-gray-500">
+          <span className="text-xs text-gray-500 flex-shrink-0">
             {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
           </span>
         )}
       </div>
-      {/* Content */}
-      <div className="mb-3">
-        <div className="text-lg leading-relaxed mb-4">{text}</div>
 
-        <div className="grid grid-cols-2 gap-3">
+      {/* Content */}
+      <div className="mb-3 md:mb-4">
+        <div className="text-base md:text-lg leading-relaxed mb-3 md:mb-4">
+          {text}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
           {(options || []).map((option: any, index: number) => (
-            <div key={option.id} className="flex flex-col gap-2">
+            <div key={option.id} className="flex flex-col gap-1 md:gap-2">
               {/* Option number indicator for unvoted polls */}
               {!isClicked && (
                 <div className="text-xs text-gray-500 font-medium mb-1">
@@ -250,7 +257,7 @@ const Post = ({ data }: { data: PostType }) => {
                 </div>
               )}
               <button
-                className={`relative rounded-xl py-3 px-4 body-lg font-medium transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-offset-2 text-sm border-2 flex items-center gap-2 overflow-hidden group
+                className={`relative rounded-xl py-2 md:py-3 px-3 md:px-4 body-lg font-medium transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-offset-2 text-sm md:text-base border-2 flex items-center gap-2 overflow-hidden group min-h-[44px] md:min-h-[48px]
                    ${
                      option.id == clickedOption
                        ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white border-blue-600 shadow-lg transform scale-105"
@@ -268,11 +275,13 @@ const Post = ({ data }: { data: PostType }) => {
                 disabled={isClicked}
               >
                 {option.id == clickedOption && (
-                  <FaCheck className="icon mr-1 animate-pulse" />
+                  <FaCheck className="icon mr-1 animate-pulse flex-shrink-0" />
                 )}
-                <span className="font-semibold">{option.text}</span>
+                <span className="font-semibold truncate flex-1">
+                  {option.text}
+                </span>
                 <span
-                  className={`ml-auto text-xs ${
+                  className={`ml-auto text-xs flex-shrink-0 ${
                     option.id == clickedOption ? "opacity-90" : "opacity-60"
                   }`}
                 >
@@ -293,7 +302,7 @@ const Post = ({ data }: { data: PostType }) => {
               {/* Enhanced poll result bar - always show when there are votes */}
               {(votes[index] > 0 || isClicked) && (
                 <div className="space-y-1">
-                  <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden shadow-inner">
+                  <div className="w-full h-2 md:h-3 bg-gray-700 rounded-full overflow-hidden shadow-inner">
                     <div
                       className="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-1000 ease-out rounded-full relative"
                       style={{ width: `${getPercentages()[index]}%` }}
@@ -319,20 +328,21 @@ const Post = ({ data }: { data: PostType }) => {
           ))}
         </div>
       </div>
+
       {/* Actions Row */}
-      <div className="flex items-center justify-around px-1 py-1 gap-4">
+      <div className="flex items-center justify-around px-1 py-2 gap-2 md:gap-4">
         <button
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();
             handleUpvote();
           }}
-          className={`icon text-blue-700 hover:scale-110 active:scale-95 transition-transform ${
+          className={`icon text-blue-700 hover:scale-110 active:scale-95 transition-transform p-2 rounded-lg hover:bg-gray-100 ${
             upvoted ? "font-bold" : ""
           }`}
           aria-label="Upvote"
         >
-          {upvoted ? <BiSolidUpvote /> : <BiUpvote />}
+          {upvoted ? <BiSolidUpvote size={20} /> : <BiUpvote size={20} />}
         </button>
         <button
           onClick={(event) => {
@@ -340,40 +350,40 @@ const Post = ({ data }: { data: PostType }) => {
             event.stopPropagation();
             handleDownvote();
           }}
-          className={`icon text-red-500 hover:scale-110 active:scale-95 transition-transform ${
+          className={`icon text-red-500 hover:scale-110 active:scale-95 transition-transform p-2 rounded-lg hover:bg-gray-100 ${
             downvoted ? "font-bold" : ""
           }`}
           aria-label="Downvote"
         >
-          {downvoted ? <BiSolidDownvote /> : <BiDownvote />}
+          {downvoted ? <BiSolidDownvote size={20} /> : <BiDownvote size={20} />}
         </button>
         <button
           onClick={(event) => {
             event.stopPropagation();
             router.push(`/post/${id}`);
           }}
-          className="icon text-accent hover:scale-110 active:scale-95 transition-transform"
+          className="icon text-accent hover:scale-110 active:scale-95 transition-transform p-2 rounded-lg hover:bg-gray-100"
           aria-label="Comment"
         >
-          <FaRegComment />
+          <FaRegComment size={18} />
         </button>
         <button
           onClick={(event) => {
             event.stopPropagation();
           }}
-          className="icon text-accent hover:scale-110 active:scale-95 transition-transform"
+          className="icon text-accent hover:scale-110 active:scale-95 transition-transform p-2 rounded-lg hover:bg-gray-100"
           aria-label="Bookmark"
         >
-          <FaRegBookmark />
+          <FaRegBookmark size={18} />
         </button>
         <button
           onClick={(event) => {
             event.stopPropagation();
           }}
-          className="icon text-accent hover:scale-110 active:scale-95 transition-transform"
+          className="icon text-accent hover:scale-110 active:scale-95 transition-transform p-2 rounded-lg hover:bg-gray-100"
           aria-label="Share"
         >
-          <FaShareAlt />
+          <FaShareAlt size={18} />
         </button>
       </div>
     </div>
@@ -383,40 +393,40 @@ const Post = ({ data }: { data: PostType }) => {
 // Skeleton loader for posts
 export function PostSkeleton() {
   return (
-    <div className="card animate-pulse flex gap-4 items-start mx-4">
+    <div className="card animate-pulse flex gap-3 md:gap-4 items-start w-full">
       {/* Avatar skeleton */}
-      <div className="w-12 h-12 rounded-full bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 animate-pulse-slow" />
+      <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 animate-pulse-slow flex-shrink-0" />
 
-      <div className="flex-1 space-y-4">
+      <div className="flex-1 space-y-3 md:space-y-4">
         {/* Header skeleton */}
-        <div className="flex items-center gap-2">
-          <div className="h-4 w-24 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded animate-pulse-slow" />
-          <div className="h-3 w-16 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded animate-pulse-slow" />
-          <div className="h-3 w-20 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded animate-pulse-slow ml-auto" />
+        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+          <div className="h-3 md:h-4 w-20 md:w-24 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded animate-pulse-slow" />
+          <div className="h-3 w-16 md:w-16 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded animate-pulse-slow" />
+          <div className="h-3 w-16 md:w-20 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded animate-pulse-slow md:ml-auto" />
         </div>
 
         {/* Content skeleton */}
         <div className="space-y-2">
-          <div className="h-5 w-3/4 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded animate-pulse-slow" />
-          <div className="h-5 w-1/2 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded animate-pulse-slow" />
+          <div className="h-4 md:h-5 w-3/4 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded animate-pulse-slow" />
+          <div className="h-4 md:h-5 w-1/2 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded animate-pulse-slow" />
         </div>
 
         {/* Poll options skeleton */}
-        <div className="grid grid-cols-2 gap-3 mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 mt-3 md:mt-4">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="space-y-2">
-              <div className="h-12 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-xl animate-pulse-slow" />
-              <div className="h-3 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-full animate-pulse-slow" />
+              <div className="h-10 md:h-12 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-xl animate-pulse-slow" />
+              <div className="h-2 md:h-3 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-full animate-pulse-slow" />
             </div>
           ))}
         </div>
 
         {/* Actions skeleton */}
-        <div className="flex gap-6 mt-4">
+        <div className="flex gap-4 md:gap-6 mt-3 md:mt-4">
           {[1, 2, 3, 4, 5].map((i) => (
             <div
               key={i}
-              className="h-6 w-6 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-full animate-pulse-slow"
+              className="h-8 w-8 md:h-6 md:w-6 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-full animate-pulse-slow"
             />
           ))}
         </div>

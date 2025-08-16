@@ -47,7 +47,7 @@ const Homebar = () => {
     <>
       <div className="h-screen flex flex-col justify-between bg-gradient-to-b from-gray-900 to-gray-800 text-white">
         {session.status === "authenticated" ? (
-          <div className="p-4 flex flex-col h-full">
+          <div className="p-4 md:p-6 flex flex-col h-full">
             <div
               onClick={() => setIsProfileModalOpen(true)}
               className="cursor-pointer group"
@@ -61,21 +61,21 @@ const Homebar = () => {
                   className="object-cover"
                 />
               </div>
-              <div className="font-semibold mt-3 text-center heading-3 text-sm group-hover:text-blue-400 transition-colors">
+              <div className="font-semibold mt-3 text-center heading-3 text-sm md:text-base group-hover:text-blue-400 transition-colors">
                 {session.data.user?.name}
               </div>
-              <div className="text-gray-400 text-center body-sm text-xs group-hover:text-gray-300 transition-colors">
+              <div className="text-gray-400 text-center body-sm text-xs md:text-sm group-hover:text-gray-300 transition-colors">
                 {"@" + session.data.user?.username}
               </div>
             </div>
             {/* Profile Modal */}
             {isProfileModalOpen && (
               <div
-                className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-75 flex items-center justify-center z-50"
+                className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
                 onClick={() => setIsProfileModalOpen(false)}
               >
                 <div
-                  className="relative w-full max-w-lg h-auto bg-card p-4 rounded-lg shadow-xl border"
+                  className="relative w-full max-w-lg h-auto bg-card p-4 md:p-6 rounded-lg shadow-xl border"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="relative">
@@ -93,20 +93,22 @@ const Homebar = () => {
                     </div>
                   </div>
                   <button
-                    className="absolute top-0 right-0 m-6"
+                    className="absolute top-2 right-2 md:top-6 md:right-6 m-2 md:m-6"
                     onClick={() => setIsProfileModalOpen(false)}
                   >
-                    <Icons.FaTimes className="text-2xl text-red-500" />
+                    <Icons.FaTimes className="text-xl md:text-2xl text-red-500" />
                   </button>
                   <div className="mt-16 p-4 text-center">
-                    <div className="heading-2 text-base">
+                    <div className="heading-2 text-base md:text-lg">
                       {session?.data.user.name}
                     </div>
-                    <div className="text-gray-500 body-sm text-xs">
+                    <div className="text-gray-500 body-sm text-xs md:text-sm">
                       {"@" + session?.data.user.username}
                     </div>
-                    <div className="mt-2 body-lg text-sm">{bio}</div>
-                    <div className="mt-2 flex justify-center space-x-4 text-xs">
+                    <div className="mt-2 body-lg text-sm md:text-base">
+                      {bio}
+                    </div>
+                    <div className="mt-2 flex justify-center space-x-4 text-xs md:text-sm">
                       <div className="font-bold">{followers}</div>
                       <div>Followers</div>
                       <div className="font-bold">{following}</div>
@@ -117,14 +119,14 @@ const Homebar = () => {
               </div>
             )}
             {/* Navigation */}
-            <div className="flex flex-col gap-2 mt-8">
+            <div className="flex flex-col gap-2 mt-6 md:mt-8">
               {Object.values(homeBarContents).map((item) => {
                 const IconComponent = Icons[item.icon as keyof typeof Icons];
                 const isActive = pathname === item.href;
                 return (
                   <button
                     key={item.label}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-lg transition-all duration-300 font-medium shadow-sm group
+                    className={`flex items-center gap-3 px-3 md:px-4 py-2 md:py-3 rounded-xl text-base md:text-lg transition-all duration-300 font-medium shadow-sm group
                        ${
                          isActive
                            ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transform scale-105"
@@ -134,13 +136,15 @@ const Homebar = () => {
                     onClick={() => router.push(item.href)}
                   >
                     <IconComponent
-                      className={`icon transition-all duration-300 ${
+                      className={`icon transition-all duration-300 text-lg md:text-xl ${
                         isActive
                           ? "text-white"
                           : "text-gray-400 group-hover:text-blue-400"
                       }`}
                     />
-                    <span className="font-semibold">{item.label}</span>
+                    <span className="font-semibold text-sm md:text-base">
+                      {item.label}
+                    </span>
                   </button>
                 );
               })}
@@ -148,24 +152,24 @@ const Homebar = () => {
             <div className="flex-1" />
             {/* Floating Action Button for mobile */}
             <button
-              className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40 bg-accent text-white rounded-full shadow-lg p-4 flex items-center justify-center md:hidden hover:bg-accent-hover transition-all"
+              className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40 bg-accent text-white rounded-full shadow-lg p-3 md:p-4 flex items-center justify-center md:hidden hover:bg-accent-hover transition-all"
               style={{ boxShadow: "0 4px 16px 0 rgba(37,99,235,0.15)" }}
               onClick={() => router.push("/")}
               aria-label="Create New Poll"
             >
-              <Icons.FaPlus className="text-2xl" />
+              <Icons.FaPlus className="text-xl md:text-2xl" />
             </button>
             <button
-              className="mt-6 w-full bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-bold py-3 px-4 hover:from-red-700 hover:to-red-800 transition-all shadow-lg hover:shadow-xl"
+              className="mt-4 md:mt-6 w-full bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-bold py-2 md:py-3 px-3 md:px-4 hover:from-red-700 hover:to-red-800 transition-all shadow-lg hover:shadow-xl text-sm md:text-base"
               onClick={() => signOut()}
             >
               Sign out
             </button>
           </div>
         ) : (
-          <div>
+          <div className="p-4">
             <button
-              className="bg-blue-700 rounded-full mb-2 p-3 text-white font-semibold m-2"
+              className="bg-blue-700 rounded-full mb-2 p-2 md:p-3 text-white font-semibold m-2 text-sm md:text-base w-full md:w-auto"
               onClick={() => {
                 signIn();
               }}
@@ -173,7 +177,7 @@ const Homebar = () => {
               Sign in
             </button>
             <button
-              className="bg-blue-700 rounded-full mb-2 p-3 text-white font-semibold m-2"
+              className="bg-blue-700 rounded-full mb-2 p-2 md:p-3 text-white font-semibold m-2 text-sm md:text-base w-full md:w-auto"
               onClick={() => router.push("/signup")}
             >
               Sign up

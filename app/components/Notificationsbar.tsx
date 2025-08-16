@@ -25,13 +25,19 @@ interface UserType {
 function getIcon(type: string) {
   switch (type) {
     case "VOTE":
-      return <FaVoteYea className="text-blue-500 text-lg mr-2" />;
+      return <FaVoteYea className="text-blue-500 text-base md:text-lg mr-2" />;
     case "COMMENT":
-      return <FaRegComment className="text-green-500 text-lg mr-2" />;
+      return (
+        <FaRegComment className="text-green-500 text-base md:text-lg mr-2" />
+      );
     case "UPVOTE":
-      return <FaArrowUp className="text-orange-500 text-lg mr-2" />;
+      return (
+        <FaArrowUp className="text-orange-500 text-base md:text-lg mr-2" />
+      );
     case "FOLLOW":
-      return <FaUserPlus className="text-purple-500 text-lg mr-2" />;
+      return (
+        <FaUserPlus className="text-purple-500 text-base md:text-lg mr-2" />
+      );
     default:
       return null;
   }
@@ -66,24 +72,28 @@ function NotificationItem({ notif }: { notif: NotificationType }) {
     }
   }
   return (
-    <div className="card flex items-center transition cursor-pointer p-2 mb-1 rounded-md shadow-sm bg-gray-800 text-white hover:bg-gray-700 border border-gray-700">
+    <div className="card flex items-center transition cursor-pointer p-2 md:p-3 mb-1 md:mb-2 rounded-md shadow-sm bg-gray-800 text-white hover:bg-gray-700 border border-gray-700">
       <div className="flex -space-x-1 mr-2">
         {actors.slice(0, 3).map((actor) => (
           <Image
             key={actor.id}
             src={actor.profilePicture}
             alt={actor.name}
-            width={28}
-            height={28}
-            className="avatar border border-white"
+            width={24}
+            height={24}
+            className="avatar border border-white w-6 h-6 md:w-7 md:h-7"
           />
         ))}
-        {actors.length === 0 && <div className="avatar bg-gray-200" />}
+        {actors.length === 0 && (
+          <div className="avatar bg-gray-200 w-6 h-6 md:w-7 md:h-7" />
+        )}
       </div>
-      <div className="flex-1">
-        <span className="heading-3 text-sm">{displayText}</span>
+      <div className="flex-1 min-w-0">
+        <span className="heading-3 text-xs md:text-sm block truncate">
+          {displayText}
+        </span>
         {notif.post_text && (
-          <span className="text-gray-300 body-sm text-xs">
+          <span className="text-gray-300 body-sm text-xs block truncate">
             : "{notif.post_text}"
           </span>
         )}
@@ -91,7 +101,9 @@ function NotificationItem({ notif }: { notif: NotificationType }) {
           {timeAgo(notif.createdAt)}
         </div>
       </div>
-      <div className="ml-2 icon accent">{getIcon(notif.type)}</div>
+      <div className="ml-2 icon accent flex-shrink-0">
+        {getIcon(notif.type)}
+      </div>
     </div>
   );
 }
@@ -99,13 +111,13 @@ function NotificationItem({ notif }: { notif: NotificationType }) {
 // Skeleton loader for notifications
 export function NotificationSkeleton() {
   return (
-    <div className="card animate-pulse flex items-center p-3 mb-2 gap-3">
-      <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700" />
+    <div className="card animate-pulse flex items-center p-2 md:p-3 mb-2 gap-3">
+      <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-200 dark:bg-gray-700" />
       <div className="flex-1 space-y-2">
-        <div className="h-4 w-1/2 bg-gray-200 dark:bg-gray-700 rounded" />
-        <div className="h-3 w-1/3 bg-gray-100 dark:bg-gray-800 rounded" />
+        <div className="h-3 md:h-4 w-1/2 bg-gray-200 dark:bg-gray-700 rounded" />
+        <div className="h-2 md:h-3 w-1/3 bg-gray-100 dark:bg-gray-800 rounded" />
       </div>
-      <div className="ml-2 w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700" />
+      <div className="ml-2 w-5 h-5 md:w-6 md:h-6 rounded-full bg-gray-200 dark:bg-gray-700" />
     </div>
   );
 }
@@ -134,11 +146,11 @@ export default function Notificationsbar() {
   }, [session.data?.user.id]);
 
   return (
-    <div className="h-screen">
-      <div className="text-white text-center font-semibold text-2xl py-2">
+    <div className="h-screen flex flex-col">
+      <div className="text-white text-center font-semibold text-lg md:text-2xl py-2 md:py-4 px-2 border-b border-gray-700">
         Notifications
       </div>
-      <div className="p-2">
+      <div className="flex-1 overflow-y-auto p-2 md:p-4">
         {loading && (!notifs || notifs.length === 0) ? (
           <>
             <NotificationSkeleton />
@@ -150,7 +162,9 @@ export default function Notificationsbar() {
             <NotificationItem notif={notif} key={notif.id} />
           ))
         ) : (
-          <div className="text-center text-gray-400">No notifications</div>
+          <div className="text-center text-gray-400 text-sm md:text-base py-8">
+            No notifications
+          </div>
         )}
       </div>
     </div>
