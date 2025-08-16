@@ -208,7 +208,10 @@ const Post = ({ data }: { data: PostType }) => {
   }
 
   return (
-    <div className="card group transition-all duration-300 ease-in-out cursor-pointer rounded-md shadow-sm bg-card text-main hover:shadow-lg hover:-translate-y-0.5 mx-4">
+    <div 
+      className="card group transition-all duration-300 ease-in-out cursor-pointer rounded-md shadow-sm bg-card text-main hover:shadow-lg hover:-translate-y-0.5 mx-4"
+      onClick={() => router.push(`/post/${id}`)}
+    >
       {/* Header: Avatar + User Info */}
       <div className="flex items-center gap-3 mb-2">
         <div
@@ -348,8 +351,9 @@ const Post = ({ data }: { data: PostType }) => {
           {downvoted ? <BiSolidDownvote /> : <BiDownvote />}
         </button>
         <button
-          onClick={() => {
-            router.push("/post");
+          onClick={(event) => {
+            event.stopPropagation();
+            router.push(`/post/${id}`);
           }}
           className="icon text-accent hover:scale-110 active:scale-95 transition-transform"
           aria-label="Comment"
@@ -357,12 +361,18 @@ const Post = ({ data }: { data: PostType }) => {
           <FaRegComment />
         </button>
         <button
+          onClick={(event) => {
+            event.stopPropagation();
+          }}
           className="icon text-accent hover:scale-110 active:scale-95 transition-transform"
           aria-label="Bookmark"
         >
           <FaRegBookmark />
         </button>
         <button
+          onClick={(event) => {
+            event.stopPropagation();
+          }}
           className="icon text-accent hover:scale-110 active:scale-95 transition-transform"
           aria-label="Share"
         >

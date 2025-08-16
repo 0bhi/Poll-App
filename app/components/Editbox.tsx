@@ -7,25 +7,67 @@ import {
   FaPlus,
   FaRegPaperPlane,
 } from "react-icons/fa";
+import { useSession } from "next-auth/react";
+import axios from "axios";
 
 const BLUE_BG = "bg-blue-700"; // You can adjust this shade as needed
 
 const Editbox = ({ onPostCreated }: { onPostCreated: (post: any) => void }) => {
+  const { data: session } = useSession();
   const [text, setText] = useState("");
   const [option1, setOption1] = useState("");
   const [option2, setOption2] = useState("");
   const [option3, setOption3] = useState("");
   const [option4, setOption4] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Dummy submit handler for now
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Just clear fields for demo
-    setText("");
-    setOption1("");
-    setOption2("");
-    setOption3("");
-    setOption4("");
+    
+    // Check if user is authenticated
+    if (!session?.user?.id) {
+      alert("Please sign in to create a poll");
+      return;
+    }
+
+    // Validate form data
+    if (!text.trim()) {
+      alert("Please enter a question for your poll");
+      return;
+    }
+
+    const options = [option1, option2, option3, option4].filter(opt => opt.trim());
+    if (options.length < 2) {
+      alert("Please enter at least 2 options for your poll");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await axios.post("/api/post", {
+        text: text.trim(),
+        options: options,
+        user_id: session.user.id
+      });
+
+      if (response.data) {
+        // Clear form
+        setText("");
+        setOption1("");
+        setOption2("");
+        setOption3("");
+        setOption4("");
+        
+        // Call the callback to add the new post to the feed
+        onPostCreated(response.data);
+      }
+    } catch (error) {
+      console.error("Error creating poll:", error);
+      alert("Failed to create poll. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -111,10 +153,15 @@ const Editbox = ({ onPostCreated }: { onPostCreated: (post: any) => void }) => {
       {/* Post button */}
       <button
         type="submit"
-        className="w-full mt-4 py-4 rounded-xl bg-white text-blue-700 font-bold text-lg flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 active:scale-95 relative z-10"
+        disabled={isSubmitting}
+        className={`w-full mt-4 py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 shadow-xl transition-all duration-300 transform relative z-10 ${
+          isSubmitting 
+            ? "bg-gray-400 text-gray-600 cursor-not-allowed" 
+            : "bg-white text-blue-700 hover:shadow-2xl hover:bg-blue-50 hover:scale-105 active:scale-95"
+        }`}
       >
-        <FaRegPaperPlane className="animate-pulse" /> 
-        <span>Create Poll</span>
+        <FaRegPaperPlane className={isSubmitting ? "" : "animate-pulse"} /> 
+        <span>{isSubmitting ? "Creating Poll..." : "Create Poll"}</span>
       </button>
     </form>
   );

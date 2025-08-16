@@ -5,16 +5,24 @@ import { NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    
+    // Validate required fields
+    if (!body.text || !body.options || !body.user_id) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // Filter out empty options and create the options array
+    const validOptions = body.options.filter((option: string) => option && option.trim());
+    
+    if (validOptions.length < 2) {
+      return NextResponse.json({ error: "At least 2 options are required" }, { status: 400 });
+    }
+
     const post = await Prisma.post.create({
       data: {
         text: body.text,
         options: {
-          create: [
-            { text: body.options[0] },
-            { text: body.options[1] },
-            { text: body.options[2] },
-            { text: body.options[3] },
-          ],
+          create: validOptions.map((option: string) => ({ text: option })),
         },
         user_id: parseInt(body.user_id),
       },
@@ -29,7 +37,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(post);
   } catch (e) {
     console.log(e);
-    return NextResponse.json({ error: "Invalid request" });
+    return NextResponse.json({ error: "Invalid request" }, { status: 500 });
   }
 }
 
