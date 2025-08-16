@@ -208,7 +208,7 @@ const Post = ({ data }: { data: PostType }) => {
   }
 
   return (
-    <div 
+    <div
       className="card group transition-all duration-300 ease-in-out cursor-pointer rounded-md shadow-sm bg-card text-main hover:shadow-lg hover:-translate-y-0.5 mx-4"
       onClick={() => router.push(`/post/${id}`)}
     >
@@ -302,9 +302,6 @@ const Post = ({ data }: { data: PostType }) => {
                     </div>
                   </div>
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-gray-300 font-medium">
-                      {option.text}
-                    </span>
                     <span className="text-blue-400 font-bold">
                       {getPercentages()[index]}%
                     </span>

@@ -1,10 +1,10 @@
 "use client";
-import React, { useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { useChat } from './ChatProvider';
-import Image from 'next/image';
-import { formatDistanceToNow } from 'date-fns';
-import { FaCheck, FaCheckDouble } from 'react-icons/fa';
+import React, { useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useChat } from "./ChatProvider";
+import Image from "next/image";
+import { formatDistanceToNow } from "date-fns";
+import { FaCheck, FaCheckDouble } from "react-icons/fa";
 
 interface Message {
   id: number;
@@ -27,7 +27,7 @@ interface MessageBubbleProps {
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   const { data: session } = useSession();
   const { markMessageAsRead } = useChat();
-  const isOwnMessage = session?.user?.id === message.sender.id.toString();
+  const isOwnMessage = parseInt(session?.user?.id || "0") === message.sender.id;
 
   // Mark message as read when it's not our own message
   useEffect(() => {
@@ -37,8 +37,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   }, [message.id, message.isRead, isOwnMessage, markMessageAsRead]);
 
   return (
-    <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-      <div className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${isOwnMessage ? 'flex-row-reverse space-x-reverse' : ''}`}>
+    <div className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}>
+      <div
+        className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${
+          isOwnMessage ? "flex-row-reverse space-x-reverse" : ""
+        }`}
+      >
         {/* Profile Picture (only for other user's messages) */}
         {!isOwnMessage && (
           <Image
@@ -51,22 +55,34 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         )}
 
         {/* Message Content */}
-        <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'}`}>
+        <div
+          className={`flex flex-col ${
+            isOwnMessage ? "items-end" : "items-start"
+          }`}
+        >
           {/* Message Bubble */}
           <div
             className={`px-4 py-2 rounded-lg max-w-full break-words ${
               isOwnMessage
-                ? 'bg-accent text-white rounded-br-md'
-                : 'bg-gray-100 dark:bg-gray-700 text-main rounded-bl-md'
+                ? "bg-accent text-white rounded-br-md"
+                : "bg-gray-100 dark:bg-gray-700 text-main rounded-bl-md"
             }`}
           >
             <p className="text-sm">{message.content}</p>
           </div>
 
           {/* Message Info */}
-          <div className={`flex items-center space-x-1 mt-1 text-xs text-gray-500 ${isOwnMessage ? 'flex-row-reverse space-x-reverse' : ''}`}>
-            <span>{formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}</span>
-            
+          <div
+            className={`flex items-center space-x-1 mt-1 text-xs text-gray-500 ${
+              isOwnMessage ? "flex-row-reverse space-x-reverse" : ""
+            }`}
+          >
+            <span>
+              {formatDistanceToNow(new Date(message.createdAt), {
+                addSuffix: true,
+              })}
+            </span>
+
             {/* Read receipt for own messages */}
             {isOwnMessage && (
               <div className="flex items-center">
