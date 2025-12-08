@@ -147,7 +147,7 @@ export default function Notificationsbar() {
 
   return (
     <div className="h-screen flex flex-col">
-      <div className="text-white text-center font-semibold text-lg md:text-2xl py-2 md:py-4 px-2 border-b border-gray-700">
+      <div className="text-white text-center font-semibold text-lg md:text-2xl py-2 md:py-4 px-2">
         Notifications
       </div>
       <div className="flex-1 overflow-y-auto p-2 md:p-4">

@@ -159,12 +159,6 @@ const Homebar = () => {
             >
               <Icons.FaPlus className="text-xl md:text-2xl" />
             </button>
-            <button
-              className="mt-4 md:mt-6 w-full bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-bold py-2 md:py-3 px-3 md:px-4 hover:from-red-700 hover:to-red-800 transition-all shadow-lg hover:shadow-xl text-sm md:text-base"
-              onClick={() => signOut()}
-            >
-              Sign out
-            </button>
           </div>
         ) : (
           <div className="p-4">
