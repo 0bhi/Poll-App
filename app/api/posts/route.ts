@@ -2,6 +2,7 @@ import Prisma from "../../lib/db";
 import { NextResponse, NextRequest } from "next/server";
 import { getPostsQuerySchema } from "../../lib/schemas";
 import { validateQuery } from "../../lib/validation";
+import { handleError } from "../../lib/errorHandler";
 
 export const dynamic = "force-dynamic";
 
@@ -33,8 +34,7 @@ export async function GET(req: NextRequest) {
       posts.length === take ? posts[posts.length - 1].id : null;
 
     return NextResponse.json({ posts, nextCursor });
-  } catch (e) {
-    console.log(e);
-    return NextResponse.json({ error: "Invalid request" }, { status: 500 });
+  } catch (error) {
+    return handleError(error, req);
   }
 }

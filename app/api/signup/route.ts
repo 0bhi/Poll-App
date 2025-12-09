@@ -3,6 +3,8 @@ import Prisma from "../../lib/db";
 import bcrypt from "bcrypt";
 import { signupSchema } from "../../lib/schemas";
 import { validateBody } from "../../lib/validation";
+import { handleError } from "../../lib/errorHandler";
+import { ConflictError } from "../../lib/errors";
 
 export const POST = async (req: NextRequest) => {
   try {
@@ -26,11 +28,9 @@ export const POST = async (req: NextRequest) => {
     });
 
     if (existingUser) {
-      return NextResponse.json(
-        { message: "User already exists" },
-        { status: 409 }
-      );
+      throw new ConflictError("User with this username or email already exists");
     }
+    
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await Prisma.user.create({
@@ -42,10 +42,8 @@ export const POST = async (req: NextRequest) => {
       },
     });
 
-    console.log(user);
     return NextResponse.json(user);
   } catch (error) {
-    console.log(error);
-    return NextResponse.json({ error: "Failed to create user" }, { status: 500 });
+    return handleError(error, req);
   }
 };

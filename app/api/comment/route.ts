@@ -2,6 +2,8 @@ import Prisma from "../../lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { createCommentSchema } from "../../lib/schemas";
 import { validateBody } from "../../lib/validation";
+import { handleError } from "../../lib/errorHandler";
+import { NotFoundError } from "../../lib/errors";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,6 +13,25 @@ export async function POST(req: NextRequest) {
     }
 
     const { comment, postid, userid, parentId } = validation.data;
+    
+    // Verify post exists
+    const post = await Prisma.post.findUnique({
+      where: { id: typeof postid === "string" ? parseInt(postid) : postid },
+    });
+    if (!post) {
+      throw new NotFoundError("Post");
+    }
+
+    // Verify parent comment exists if provided
+    if (parentId) {
+      const parentComment = await Prisma.comment.findUnique({
+        where: { id: typeof parentId === "string" ? parseInt(parentId) : parentId },
+      });
+      if (!parentComment) {
+        throw new NotFoundError("Parent comment");
+      }
+    }
+
     const res = await Prisma.comment.create({
       data: {
         text: comment,
@@ -21,7 +42,6 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(res);
   } catch (error) {
-    console.log(error);
-    return NextResponse.json({ error: "Failed to create comment" }, { status: 500 });
+    return handleError(error, req);
   }
 }

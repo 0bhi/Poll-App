@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Prisma from "@/app/lib/db";
 import { searchUsersQuerySchema } from "@/app/lib/schemas";
 import { validateQuery } from "@/app/lib/validation";
+import { handleError } from "@/app/lib/errorHandler";
 
 export async function GET(req: NextRequest) {
   try {
@@ -36,10 +37,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ users });
   } catch (error) {
-    console.error("Error searching users:", error);
-    return NextResponse.json(
-      { error: "Failed to search users" },
-      { status: 500 }
-    );
+    return handleError(error, req);
   }
 }

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import Prisma from "@/app/lib/db";
 import { getUserQuerySchema } from "@/app/lib/schemas";
 import { validateQuery } from "@/app/lib/validation";
+import { handleError } from "@/app/lib/errorHandler";
+import { NotFoundError } from "@/app/lib/errors";
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,9 +19,13 @@ export async function GET(req: NextRequest) {
         id: user_id,
       },
     });
+
+    if (!user) {
+      throw new NotFoundError("User");
+    }
+
     return NextResponse.json(user);
   } catch (error) {
-    console.log(error);
-    return NextResponse.json({ error: "Failed to fetch user" }, { status: 500 });
+    return handleError(error, req);
   }
 }

@@ -2,6 +2,7 @@ import prisma from "@/app/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { getNotificationsQuerySchema } from "@/app/lib/schemas";
 import { validateQuery } from "@/app/lib/validation";
+import { handleError } from "@/app/lib/errorHandler";
 
 export async function GET(req: NextRequest) {
   try {
@@ -43,8 +44,7 @@ export async function GET(req: NextRequest) {
       })
     );
     return NextResponse.json({ notifications: notificationsWithActors });
-  } catch (err) {
-    console.log(err);
-    return NextResponse.json({ error: "Failed to fetch notifications" }, { status: 500 });
+  } catch (error) {
+    return handleError(error, req);
   }
 }

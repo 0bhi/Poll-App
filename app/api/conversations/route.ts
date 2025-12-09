@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Prisma from "@/app/lib/db";
 import { getConversationsQuerySchema, createConversationSchema } from "@/app/lib/schemas";
 import { validateQuery, validateBody } from "@/app/lib/validation";
+import { handleError } from "@/app/lib/errorHandler";
 
 export async function GET(req: NextRequest) {
   try {
@@ -57,7 +58,7 @@ export async function GET(req: NextRequest) {
     const transformedConversations = await Promise.all(
       conversations.map(async (conversation) => {
         const otherUser =
-          conversation.participant1Id === parseInt(userId)
+          conversation.participant1Id === userId
             ? conversation.participant2
             : conversation.participant1;
 
@@ -82,11 +83,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ conversations: transformedConversations });
   } catch (error) {
-    console.error("Error fetching conversations:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch conversations" },
-      { status: 500 }
-    );
+    return handleError(error, req);
   }
 }
 
@@ -149,10 +146,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ conversation });
   } catch (error) {
-    console.error("Error creating conversation:", error);
-    return NextResponse.json(
-      { error: "Failed to create conversation" },
-      { status: 500 }
-    );
+    return handleError(error, req);
   }
 }

@@ -2,6 +2,8 @@ import { NextResponse, NextRequest } from "next/server";
 import Prisma from "@/app/lib/db";
 import { getVoteQuerySchema, createVoteSchema, deleteVoteSchema } from "@/app/lib/schemas";
 import { validateQuery, validateBody } from "@/app/lib/validation";
+import { handleError } from "@/app/lib/errorHandler";
+import { ConflictError, NotFoundError } from "@/app/lib/errors";
 
 export async function GET(req: NextRequest) {
   try {
@@ -21,8 +23,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ vote });
   } catch (error) {
-    console.log(error);
-    return NextResponse.json({ error: "vote not found" }, { status: 500 });
+    return handleError(error, req);
   }
 }
 
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (existingVote) {
-      return NextResponse.json({ error: "vote already exists" }, { status: 409 });
+      throw new ConflictError("Vote already exists");
     }
 
     // Grouped notification logic
@@ -117,8 +118,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ res });
   } catch (error) {
-    console.log(error);
-    return NextResponse.json({ error: "vote creation failed" }, { status: 500 });
+    return handleError(error, req);
   }
 }
 
@@ -137,10 +137,8 @@ export async function DELETE(req: NextRequest) {
         id: parsedId,
       },
     });
-    console.log(res);
     return NextResponse.json({ res });
   } catch (error) {
-    console.log(error);
-    return NextResponse.json({ error: "vote deletion failed" }, { status: 500 });
+    return handleError(error, req);
   }
 }

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import Prisma from "@/app/lib/db";
 import { getMessagesQuerySchema, createMessageSchema, updateMessageSchema } from "@/app/lib/schemas";
 import { validateQuery, validateBody } from "@/app/lib/validation";
+import { handleError } from "@/app/lib/errorHandler";
+import { NotFoundError } from "@/app/lib/errors";
 
 export async function GET(req: NextRequest) {
   try {
@@ -46,11 +48,7 @@ export async function GET(req: NextRequest) {
       nextCursor 
     });
   } catch (error) {
-    console.error("Error fetching messages:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch messages" },
-      { status: 500 }
-    );
+    return handleError(error, req);
   }
 }
 
@@ -77,10 +75,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!conversation) {
-      return NextResponse.json(
-        { error: "Conversation not found or user not a participant" },
-        { status: 404 }
-      );
+      throw new NotFoundError("Conversation or user is not a participant");
     }
 
     // Create the message
@@ -89,7 +84,7 @@ export async function POST(req: NextRequest) {
         conversationId: parsedConversationId,
         senderId: parsedSenderId,
         content,
-        messageType,
+        messageType: messageType as "TEXT" | "IMAGE" | "POLL_LINK" | "SYSTEM",
       },
       include: {
         sender: {
@@ -126,11 +121,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ message });
   } catch (error) {
-    console.error("Error sending message:", error);
-    return NextResponse.json(
-      { error: "Failed to send message" },
-      { status: 500 }
-    );
+    return handleError(error, req);
   }
 }
 
@@ -151,10 +142,6 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({ message });
   } catch (error) {
-    console.error("Error updating message:", error);
-    return NextResponse.json(
-      { error: "Failed to update message" },
-      { status: 500 }
-    );
+    return handleError(error, req);
   }
 }

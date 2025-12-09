@@ -2,6 +2,8 @@ import { NextResponse, NextRequest } from "next/server";
 import Prisma from "@/app/lib/db";
 import { getPostVoteQuerySchema, createPostVoteSchema } from "@/app/lib/schemas";
 import { validateQuery, validateBody } from "@/app/lib/validation";
+import { handleError } from "@/app/lib/errorHandler";
+import { ValidationError } from "@/app/lib/errors";
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,11 +24,7 @@ export async function GET(req: NextRequest) {
     });
     return NextResponse.json({ type: vote?.type ?? null });
   } catch (error) {
-    console.log(error);
-    return NextResponse.json(
-      { error: "Failed to fetch post vote status" },
-      { status: 500 }
-    );
+    return handleError(error, req);
   }
 }
 
@@ -53,10 +51,7 @@ export async function POST(req: NextRequest) {
     });
     if (existingVote) {
       if (existingVote.type === type) {
-        return NextResponse.json(
-          { message: `Already ${type.toLowerCase()}d` },
-          { status: 400 }
-        );
+        throw new ValidationError(`Already ${type.toLowerCase()}d`);
       } else {
         await Prisma.postVote.update({
           where: { user_id_post_id: { user_id: parsedUserId, post_id: parsedPostId } },
@@ -75,10 +70,6 @@ export async function POST(req: NextRequest) {
       });
     }
   } catch (error) {
-    console.log(error);
-    return NextResponse.json(
-      { error: "Vote operation failed" },
-      { status: 500 }
-    );
+    return handleError(error, req);
   }
 }

@@ -74,7 +74,10 @@ export const createMessageSchema = z.object({
     .string()
     .min(1, "Content is required")
     .max(2000, "Content must be less than 2000 characters"),
-  messageType: z.enum(["TEXT", "IMAGE", "FILE"]).optional().default("TEXT"),
+  messageType: z
+    .enum(["TEXT", "IMAGE", "POLL_LINK", "SYSTEM"])
+    .optional()
+    .default("TEXT"),
 });
 
 export const updateMessageSchema = z.object({

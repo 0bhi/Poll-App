@@ -3,6 +3,8 @@ import Prisma from "../../lib/db";
 import { NextResponse } from "next/server";
 import { createPostSchema, getPostQuerySchema } from "../../lib/schemas";
 import { validateBody, validateQuery } from "../../lib/validation";
+import { handleError } from "../../lib/errorHandler";
+import { NotFoundError, ValidationError } from "../../lib/errors";
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,9 +32,8 @@ export async function POST(req: NextRequest) {
       },
     });
     return NextResponse.json(post);
-  } catch (e) {
-    console.log(e);
-    return NextResponse.json({ error: "Invalid request" }, { status: 500 });
+  } catch (error) {
+    return handleError(error, req);
   }
 }
 
@@ -44,29 +45,34 @@ export async function GET(req: NextRequest) {
     }
 
     const { postid } = validation.data;
-    if (postid) {
-      const post = await Prisma.post.findUnique({
-        where: {
-          id: postid,
-        },
-        include: {
-          options: {
-            include: {
-              votes: true,
-            },
-          },
-          comments: {
-            include: {
-              replies: true,
-            },
-          },
-        },
-      });
-      return NextResponse.json(post);
+    if (!postid) {
+      throw new ValidationError("Post ID is required");
     }
-    return NextResponse.json({ error: "Post ID is required" }, { status: 400 });
+
+    const post = await Prisma.post.findUnique({
+      where: {
+        id: postid,
+      },
+      include: {
+        options: {
+          include: {
+            votes: true,
+          },
+        },
+        comments: {
+          include: {
+            replies: true,
+          },
+        },
+      },
+    });
+
+    if (!post) {
+      throw new NotFoundError("Post");
+    }
+
+    return NextResponse.json(post);
   } catch (error) {
-    console.log(error);
-    return NextResponse.json({ error: "Failed to fetch post" }, { status: 500 });
+    return handleError(error, req);
   }
 }

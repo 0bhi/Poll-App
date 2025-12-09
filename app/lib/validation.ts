@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ZodSchema, ZodError } from "zod";
+import { z, ZodError } from "zod";
+import { ValidationError } from "./errors";
+import { handleError } from "./errorHandler";
 
 /**
  * Validates request body against a Zod schema
  */
 export async function validateBody<T>(
   req: NextRequest,
-  schema: ZodSchema<T>
+  schema: z.ZodType<T, any, any>
 ): Promise<
   { success: true; data: T } | { success: false; error: NextResponse }
 > {
@@ -16,23 +18,22 @@ export async function validateBody<T>(
     return { success: true, data: validatedData };
   } catch (error) {
     if (error instanceof ZodError) {
+      const validationError = new ValidationError(
+        "Validation failed",
+        error.errors.map((err) => ({
+          path: err.path.join("."),
+          message: err.message,
+        }))
+      );
       return {
         success: false,
-        error: NextResponse.json(
-          {
-            error: "Validation failed",
-            details: error.errors.map((err) => ({
-              path: err.path.join("."),
-              message: err.message,
-            })),
-          },
-          { status: 400 }
-        ),
+        error: handleError(validationError, req),
       };
     }
+    const jsonError = new ValidationError("Invalid JSON body");
     return {
       success: false,
-      error: NextResponse.json({ error: "Invalid JSON body" }, { status: 400 }),
+      error: handleError(jsonError, req),
     };
   }
 }
@@ -42,7 +43,7 @@ export async function validateBody<T>(
  */
 export function validateQuery<T>(
   req: NextRequest,
-  schema: ZodSchema<T>
+  schema: z.ZodType<T, any, any>
 ): { success: true; data: T } | { success: false; error: NextResponse } {
   try {
     const params: Record<string, string | null> = {};
@@ -53,26 +54,22 @@ export function validateQuery<T>(
     return { success: true, data: validatedData };
   } catch (error) {
     if (error instanceof ZodError) {
+      const validationError = new ValidationError(
+        "Validation failed",
+        error.errors.map((err) => ({
+          path: err.path.join("."),
+          message: err.message,
+        }))
+      );
       return {
         success: false,
-        error: NextResponse.json(
-          {
-            error: "Validation failed",
-            details: error.errors.map((err) => ({
-              path: err.path.join("."),
-              message: err.message,
-            })),
-          },
-          { status: 400 }
-        ),
+        error: handleError(validationError, req),
       };
     }
+    const queryError = new ValidationError("Invalid query parameters");
     return {
       success: false,
-      error: NextResponse.json(
-        { error: "Invalid query parameters" },
-        { status: 400 }
-      ),
+      error: handleError(queryError, req),
     };
   }
 }
