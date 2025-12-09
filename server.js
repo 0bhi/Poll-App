@@ -2,11 +2,19 @@ const { createServer } = require("http");
 const { parse } = require("url");
 const next = require("next");
 const { Server } = require("socket.io");
-const Prisma = require("@prisma/client").PrismaClient;
+const { PrismaClient } = require("@prisma/client");
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
 const port = process.env.PORT || 3000;
+
+// Create a singleton Prisma instance to reuse across all socket events
+// This prevents connection pool exhaustion
+const prisma = global.prisma || new PrismaClient();
+
+if (process.env.NODE_ENV !== "production") {
+  global.prisma = prisma;
+}
 
 // Prepare the Next.js app
 const app = next({ dev, hostname, port });
@@ -68,8 +76,6 @@ io.on("connection", (socket) => {
   // Handle sending messages
   socket.on("send_message", async (data) => {
     try {
-      const prisma = new Prisma();
-
       // Save message to database
       const message = await prisma.message.create({
         data: {
@@ -119,8 +125,6 @@ io.on("connection", (socket) => {
           },
         });
       }
-
-      await prisma.$disconnect();
     } catch (error) {
       console.error("Error sending message:", error);
     }
@@ -145,7 +149,6 @@ io.on("connection", (socket) => {
   // Handle message read status
   socket.on("message_read", async (data) => {
     try {
-      const prisma = new Prisma();
       await prisma.message.update({
         where: { id: data.messageId },
         data: { isRead: true },
@@ -155,8 +158,6 @@ io.on("connection", (socket) => {
         messageId: data.messageId,
         conversationId: data.conversationId,
       });
-
-      await prisma.$disconnect();
     } catch (error) {
       console.error("Error marking message as read:", error);
     }
@@ -191,4 +192,19 @@ app.prepare().then(() => {
     if (err) throw err;
     console.log(`> Ready on http://${hostname}:${port}`);
   });
+});
+
+// Graceful shutdown: disconnect Prisma on server termination
+process.on("beforeExit", async () => {
+  await prisma.$disconnect();
+});
+
+process.on("SIGINT", async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+process.on("SIGTERM", async () => {
+  await prisma.$disconnect();
+  process.exit(0);
 });
