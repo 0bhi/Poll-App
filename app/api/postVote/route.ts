@@ -1,24 +1,22 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import Prisma from "@/app/lib/db";
+import { getPostVoteQuerySchema, createPostVoteSchema } from "@/app/lib/schemas";
+import { validateQuery, validateBody } from "@/app/lib/validation";
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url!);
-  const user_id = searchParams.get("user_id");
-  const post_id = searchParams.get("post_id");
-
-  if (!user_id || !post_id) {
-    return NextResponse.json(
-      { error: "Missing user_id or post_id" },
-      { status: 400 }
-    );
-  }
-
+export async function GET(req: NextRequest) {
   try {
+    const validation = validateQuery(req, getPostVoteQuerySchema);
+    if (!validation.success) {
+      return validation.error;
+    }
+
+    const { user_id, post_id } = validation.data;
+
     const vote = await Prisma.postVote.findUnique({
       where: {
         user_id_post_id: {
-          user_id: parseInt(user_id),
-          post_id: parseInt(post_id),
+          user_id,
+          post_id,
         },
       },
     });
@@ -32,24 +30,26 @@ export async function GET(req: Request) {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const { user_id, post_id, type } = await req.json();
-    if (!user_id || !post_id || !type) {
-      return NextResponse.json(
-        { error: "Missing user_id, post_id, or type" },
-        { status: 400 }
-      );
+    const validation = await validateBody(req, createPostVoteSchema);
+    if (!validation.success) {
+      return validation.error;
     }
+
+    const { user_id, post_id, type } = validation.data;
+    const parsedUserId = typeof user_id === "string" ? parseInt(user_id) : user_id;
+    const parsedPostId = typeof post_id === "string" ? parseInt(post_id) : post_id;
+
     if (type === "REMOVE") {
       await Prisma.postVote.deleteMany({
-        where: { user_id, post_id },
+        where: { user_id: parsedUserId, post_id: parsedPostId },
       });
       return NextResponse.json({ message: "Vote removed" });
     }
     // UPVOTE or DOWNVOTE
     const existingVote = await Prisma.postVote.findUnique({
-      where: { user_id_post_id: { user_id, post_id } },
+      where: { user_id_post_id: { user_id: parsedUserId, post_id: parsedPostId } },
     });
     if (existingVote) {
       if (existingVote.type === type) {
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
         );
       } else {
         await Prisma.postVote.update({
-          where: { user_id_post_id: { user_id, post_id } },
+          where: { user_id_post_id: { user_id: parsedUserId, post_id: parsedPostId } },
           data: { type },
         });
         return NextResponse.json({
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
       }
     } else {
       await Prisma.postVote.create({
-        data: { user_id, post_id, type },
+        data: { user_id: parsedUserId, post_id: parsedPostId, type },
       });
       return NextResponse.json({
         message: `${type.charAt(0) + type.slice(1).toLowerCase()}d`,

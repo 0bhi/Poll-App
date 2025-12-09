@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import Prisma from "@/app/lib/db";
+import { searchUsersQuerySchema } from "@/app/lib/schemas";
+import { validateQuery } from "@/app/lib/validation";
 
 export async function GET(req: NextRequest) {
   try {
-    const query = req.nextUrl.searchParams.get("q");
-    const currentUserId = req.nextUrl.searchParams.get("current_user_id");
-    
-    if (!query || !currentUserId) {
-      return NextResponse.json(
-        { error: "Query and current user ID are required" },
-        { status: 400 }
-      );
+    const validation = validateQuery(req, searchUsersQuerySchema);
+    if (!validation.success) {
+      return validation.error;
     }
+
+    const { q: query, current_user_id } = validation.data;
 
     const users = await Prisma.user.findMany({
       where: {
@@ -22,7 +21,7 @@ export async function GET(req: NextRequest) {
               { username: { contains: query, mode: 'insensitive' } },
             ],
           },
-          { id: { not: parseInt(currentUserId) } }, // Exclude current user
+          { id: { not: current_user_id } }, // Exclude current user
         ],
       },
       select: {

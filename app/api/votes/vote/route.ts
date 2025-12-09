@@ -1,32 +1,43 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import Prisma from "@/app/lib/db";
+import { getVoteQuerySchema, createVoteSchema, deleteVoteSchema } from "@/app/lib/schemas";
+import { validateQuery, validateBody } from "@/app/lib/validation";
 
-export async function GET(req: any) {
-  const userId = req.nextUrl.searchParams.get("userId");
-  const postId = req.nextUrl.searchParams.get("postId");
-
+export async function GET(req: NextRequest) {
   try {
+    const validation = validateQuery(req, getVoteQuerySchema);
+    if (!validation.success) {
+      return validation.error;
+    }
+
+    const { userId, postId } = validation.data;
+
     const vote = await Prisma.vote.findFirst({
       where: {
-        user_id: parseInt(userId),
-        post_id: parseInt(postId),
+        user_id: userId,
+        post_id: postId,
       },
     });
 
     return NextResponse.json({ vote });
   } catch (error) {
     console.log(error);
-    return NextResponse.json({ error: "vote not found" });
+    return NextResponse.json({ error: "vote not found" }, { status: 500 });
   }
 }
 
-export async function POST(req: any) {
-  const body = await req.json();
+export async function POST(req: NextRequest) {
   try {
-    const userId = parseInt(body.user_id);
-    const postId = parseInt(body.post_id);
-    const postAuthorId = parseInt(body.postAuthorId);
-    const userName = body.name;
+    const validation = await validateBody(req, createVoteSchema);
+    if (!validation.success) {
+      return validation.error;
+    }
+
+    const { user_id, post_id, option_id, postAuthorId, name } = validation.data;
+    const userId = typeof user_id === "string" ? parseInt(user_id) : user_id;
+    const postId = typeof post_id === "string" ? parseInt(post_id) : post_id;
+    const postAuthorIdNum = typeof postAuthorId === "string" ? parseInt(postAuthorId) : postAuthorId;
+    const optionIdNum = typeof option_id === "string" ? parseInt(option_id) : option_id;
 
     const existingVote = await Prisma.vote.findFirst({
       where: {
@@ -36,14 +47,14 @@ export async function POST(req: any) {
     });
 
     if (existingVote) {
-      return NextResponse.json({ error: "vote already exists" });
+      return NextResponse.json({ error: "vote already exists" }, { status: 409 });
     }
 
     // Grouped notification logic
     // Find existing notification for this post and recipient
     const existingNotif = await Prisma.notifications.findFirst({
       where: {
-        user_id: postAuthorId,
+        user_id: postAuthorIdNum,
         type: "VOTE",
         // Optionally, you can add a post_id field to notifications for more precise grouping
         // post_id: postId,
@@ -86,11 +97,11 @@ export async function POST(req: any) {
     } else {
       // New notification
       actorIds = [userId];
-      notifText = `${userName} voted on your post`;
+      notifText = `${name} voted on your post`;
       await Prisma.notifications.create({
         data: {
           text: notifText,
-          user_id: postAuthorId,
+          user_id: postAuthorIdNum,
           type: "VOTE",
           actorIds,
         },
@@ -99,7 +110,7 @@ export async function POST(req: any) {
 
     const res = await Prisma.vote.create({
       data: {
-        option_id: parseInt(body.option_id),
+        option_id: optionIdNum,
         user_id: userId,
         post_id: postId,
       },
@@ -107,22 +118,29 @@ export async function POST(req: any) {
     return NextResponse.json({ res });
   } catch (error) {
     console.log(error);
-    return NextResponse.json({ error: "vote creation failed" });
+    return NextResponse.json({ error: "vote creation failed" }, { status: 500 });
   }
 }
 
-export async function DELETE(req: any) {
-  const body = await req.json();
+export async function DELETE(req: NextRequest) {
   try {
+    const validation = await validateBody(req, deleteVoteSchema);
+    if (!validation.success) {
+      return validation.error;
+    }
+
+    const { id } = validation.data;
+    const parsedId = typeof id === "string" ? parseInt(id) : id;
+
     const res = await Prisma.vote.delete({
       where: {
-        id: parseInt(body.id),
+        id: parsedId,
       },
     });
     console.log(res);
     return NextResponse.json({ res });
   } catch (error) {
     console.log(error);
-    return NextResponse.json({ error: "vote deletion failed" });
+    return NextResponse.json({ error: "vote deletion failed" }, { status: 500 });
   }
 }

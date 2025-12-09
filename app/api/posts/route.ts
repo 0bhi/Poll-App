@@ -1,13 +1,18 @@
 import Prisma from "../../lib/db";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
+import { getPostsQuerySchema } from "../../lib/schemas";
+import { validateQuery } from "../../lib/validation";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const take = parseInt(searchParams.get("take") || "10");
-    const cursor = searchParams.get("cursor");
+    const validation = validateQuery(req, getPostsQuerySchema);
+    if (!validation.success) {
+      return validation.error;
+    }
+
+    const { take, cursor } = validation.data;
 
     const findManyArgs: any = {
       orderBy: { createdAt: "desc" },
@@ -19,7 +24,7 @@ export async function GET(req: Request) {
 
     if (cursor) {
       findManyArgs.skip = 1;
-      findManyArgs.cursor = { id: parseInt(cursor) };
+      findManyArgs.cursor = { id: cursor };
     }
 
     const posts = await Prisma.post.findMany(findManyArgs);
@@ -30,6 +35,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ posts, nextCursor });
   } catch (e) {
     console.log(e);
-    return NextResponse.json({ error: "Invalid request" });
+    return NextResponse.json({ error: "Invalid request" }, { status: 500 });
   }
 }

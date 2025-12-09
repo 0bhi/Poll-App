@@ -1,22 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import Prisma from "@/app/lib/db";
+import { getMessagesQuerySchema, createMessageSchema, updateMessageSchema } from "@/app/lib/schemas";
+import { validateQuery, validateBody } from "@/app/lib/validation";
 
 export async function GET(req: NextRequest) {
   try {
-    const conversationId = req.nextUrl.searchParams.get("conversation_id");
-    const limit = parseInt(req.nextUrl.searchParams.get("limit") || "50");
-    const cursor = req.nextUrl.searchParams.get("cursor");
-
-    if (!conversationId) {
-      return NextResponse.json(
-        { error: "Conversation ID is required" },
-        { status: 400 }
-      );
+    const validation = validateQuery(req, getMessagesQuerySchema);
+    if (!validation.success) {
+      return validation.error;
     }
+
+    const { conversation_id, limit, cursor } = validation.data;
 
     const findManyArgs: any = {
       where: {
-        conversationId: parseInt(conversationId),
+        conversationId: conversation_id,
       },
       include: {
         sender: {
@@ -34,7 +32,7 @@ export async function GET(req: NextRequest) {
 
     if (cursor) {
       findManyArgs.skip = 1;
-      findManyArgs.cursor = { id: parseInt(cursor) };
+      findManyArgs.cursor = { id: cursor };
     }
 
     const messages = await Prisma.message.findMany(findManyArgs);
@@ -58,22 +56,22 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { conversationId, senderId, content, messageType = "TEXT" } = await req.json();
-
-    if (!conversationId || !senderId || !content) {
-      return NextResponse.json(
-        { error: "Conversation ID, sender ID, and content are required" },
-        { status: 400 }
-      );
+    const validation = await validateBody(req, createMessageSchema);
+    if (!validation.success) {
+      return validation.error;
     }
+
+    const { conversationId, senderId, content, messageType } = validation.data;
+    const parsedConversationId = typeof conversationId === "string" ? parseInt(conversationId) : conversationId;
+    const parsedSenderId = typeof senderId === "string" ? parseInt(senderId) : senderId;
 
     // Verify conversation exists and user is a participant
     const conversation = await Prisma.conversation.findFirst({
       where: {
-        id: parseInt(conversationId),
+        id: parsedConversationId,
         OR: [
-          { participant1Id: parseInt(senderId) },
-          { participant2Id: parseInt(senderId) },
+          { participant1Id: parsedSenderId },
+          { participant2Id: parsedSenderId },
         ],
       },
     });
@@ -88,8 +86,8 @@ export async function POST(req: NextRequest) {
     // Create the message
     const message = await Prisma.message.create({
       data: {
-        conversationId: parseInt(conversationId),
-        senderId: parseInt(senderId),
+        conversationId: parsedConversationId,
+        senderId: parsedSenderId,
         content,
         messageType,
       },
@@ -107,13 +105,13 @@ export async function POST(req: NextRequest) {
 
     // Update conversation's updatedAt timestamp
     await Prisma.conversation.update({
-      where: { id: parseInt(conversationId) },
+      where: { id: parsedConversationId },
       data: { updatedAt: new Date() },
     });
 
     // Create notification for the other participant
     const otherParticipantId = 
-      conversation.participant1Id === parseInt(senderId)
+      conversation.participant1Id === parsedSenderId
         ? conversation.participant2Id
         : conversation.participant1Id;
 
@@ -122,7 +120,7 @@ export async function POST(req: NextRequest) {
         text: `New message from ${message.sender.name}`,
         user_id: otherParticipantId,
         type: "MESSAGE",
-        actorIds: [parseInt(senderId)],
+        actorIds: [parsedSenderId],
       },
     });
 
@@ -138,17 +136,16 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { messageId, isRead } = await req.json();
-
-    if (messageId === undefined || isRead === undefined) {
-      return NextResponse.json(
-        { error: "Message ID and read status are required" },
-        { status: 400 }
-      );
+    const validation = await validateBody(req, updateMessageSchema);
+    if (!validation.success) {
+      return validation.error;
     }
 
+    const { messageId, isRead } = validation.data;
+    const parsedMessageId = typeof messageId === "string" ? parseInt(messageId) : messageId;
+
     const message = await Prisma.message.update({
-      where: { id: parseInt(messageId) },
+      where: { id: parsedMessageId },
       data: { isRead },
     });
 

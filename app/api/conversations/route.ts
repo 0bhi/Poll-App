@@ -1,22 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import Prisma from "@/app/lib/db";
+import { getConversationsQuerySchema, createConversationSchema } from "@/app/lib/schemas";
+import { validateQuery, validateBody } from "@/app/lib/validation";
 
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.nextUrl.searchParams.get("user_id");
-    
-    if (!userId) {
-      return NextResponse.json(
-        { error: "User ID is required" },
-        { status: 400 }
-      );
+    const validation = validateQuery(req, getConversationsQuerySchema);
+    if (!validation.success) {
+      return validation.error;
     }
+
+    const { user_id: userId } = validation.data;
 
     const conversations = await Prisma.conversation.findMany({
       where: {
         OR: [
-          { participant1Id: parseInt(userId) },
-          { participant2Id: parseInt(userId) },
+          { participant1Id: userId },
+          { participant2Id: userId },
         ],
       },
       include: {
@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
         const unreadCount = await Prisma.message.count({
           where: {
             conversationId: conversation.id,
-            senderId: { not: parseInt(userId) },
+            senderId: { not: userId },
             isRead: false,
           },
         });
@@ -92,26 +92,26 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { participant1Id, participant2Id } = await req.json();
-
-    if (!participant1Id || !participant2Id) {
-      return NextResponse.json(
-        { error: "Both participant IDs are required" },
-        { status: 400 }
-      );
+    const validation = await validateBody(req, createConversationSchema);
+    if (!validation.success) {
+      return validation.error;
     }
+
+    const { participant1Id, participant2Id } = validation.data;
+    const parsedParticipant1Id = typeof participant1Id === "string" ? parseInt(participant1Id) : participant1Id;
+    const parsedParticipant2Id = typeof participant2Id === "string" ? parseInt(participant2Id) : participant2Id;
 
     // Check if conversation already exists
     const existingConversation = await Prisma.conversation.findFirst({
       where: {
         OR: [
           {
-            participant1Id: parseInt(participant1Id),
-            participant2Id: parseInt(participant2Id),
+            participant1Id: parsedParticipant1Id,
+            participant2Id: parsedParticipant2Id,
           },
           {
-            participant1Id: parseInt(participant2Id),
-            participant2Id: parseInt(participant1Id),
+            participant1Id: parsedParticipant2Id,
+            participant2Id: parsedParticipant1Id,
           },
         ],
       },
@@ -124,8 +124,8 @@ export async function POST(req: NextRequest) {
     // Create new conversation
     const conversation = await Prisma.conversation.create({
       data: {
-        participant1Id: parseInt(participant1Id),
-        participant2Id: parseInt(participant2Id),
+        participant1Id: parsedParticipant1Id,
+        participant2Id: parsedParticipant2Id,
       },
       include: {
         participant1: {

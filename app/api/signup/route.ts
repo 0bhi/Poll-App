@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import Prisma from "../../lib/db";
 import bcrypt from "bcrypt";
+import { signupSchema } from "../../lib/schemas";
+import { validateBody } from "../../lib/validation";
 
 export const POST = async (req: NextRequest) => {
   try {
-    const { name, username, email, password } = await req.json();
+    const validation = await validateBody(req, signupSchema);
+    if (!validation.success) {
+      return validation.error;
+    }
+
+    const { name, username, email, password } = validation.data;
     const existingUser = await Prisma.user.findFirst({
       where: {
         OR: [
@@ -19,9 +26,10 @@ export const POST = async (req: NextRequest) => {
     });
 
     if (existingUser) {
-      return NextResponse.json({
-        message: "User already exists",
-      });
+      return NextResponse.json(
+        { message: "User already exists" },
+        { status: 409 }
+      );
     }
     const hashedPassword = await bcrypt.hash(password, 10);
 

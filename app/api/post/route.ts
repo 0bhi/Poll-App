@@ -1,30 +1,25 @@
 import { NextRequest } from "next/server";
 import Prisma from "../../lib/db";
 import { NextResponse } from "next/server";
+import { createPostSchema, getPostQuerySchema } from "../../lib/schemas";
+import { validateBody, validateQuery } from "../../lib/validation";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    
-    // Validate required fields
-    if (!body.text || !body.options || !body.user_id) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    const validation = await validateBody(req, createPostSchema);
+    if (!validation.success) {
+      return validation.error;
     }
-
-    // Filter out empty options and create the options array
-    const validOptions = body.options.filter((option: string) => option && option.trim());
     
-    if (validOptions.length < 2) {
-      return NextResponse.json({ error: "At least 2 options are required" }, { status: 400 });
-    }
+    const { text, options, user_id } = validation.data;
 
     const post = await Prisma.post.create({
       data: {
-        text: body.text,
+        text,
         options: {
-          create: validOptions.map((option: string) => ({ text: option })),
+          create: options.map((option: string) => ({ text: option })),
         },
-        user_id: parseInt(body.user_id),
+        user_id: typeof user_id === "string" ? parseInt(user_id) : user_id,
       },
       include: {
         options: {
@@ -43,11 +38,16 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const user_id = req.nextUrl.searchParams.get("postid");
-    if (user_id) {
+    const validation = validateQuery(req, getPostQuerySchema);
+    if (!validation.success) {
+      return validation.error;
+    }
+
+    const { postid } = validation.data;
+    if (postid) {
       const post = await Prisma.post.findUnique({
         where: {
-          id: parseInt(user_id),
+          id: postid,
         },
         include: {
           options: {
@@ -64,8 +64,9 @@ export async function GET(req: NextRequest) {
       });
       return NextResponse.json(post);
     }
+    return NextResponse.json({ error: "Post ID is required" }, { status: 400 });
   } catch (error) {
     console.log(error);
-    return NextResponse.json(error);
+    return NextResponse.json({ error: "Failed to fetch post" }, { status: 500 });
   }
 }
