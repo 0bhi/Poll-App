@@ -4,8 +4,13 @@ import { getUserQuerySchema } from "@/app/lib/schemas";
 import { validateQuery } from "@/app/lib/validation";
 import { handleError } from "@/app/lib/errorHandler";
 import { NotFoundError } from "@/app/lib/errors";
+import { withRateLimit } from "@/app/lib/rateLimit";
 
 export async function GET(req: NextRequest) {
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(req);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const validation = validateQuery(req, getUserQuerySchema);
     if (!validation.success) {

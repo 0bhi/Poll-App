@@ -3,15 +3,30 @@ import Prisma from "@/app/lib/db";
 import { getConversationsQuerySchema, createConversationSchema } from "@/app/lib/schemas";
 import { validateQuery, validateBody } from "@/app/lib/validation";
 import { handleError } from "@/app/lib/errorHandler";
+import { withAuth } from "@/app/lib/authMiddleware";
+import { withRateLimit, writeRateLimiter } from "@/app/lib/rateLimit";
 
 export async function GET(req: NextRequest) {
-  try {
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(req);
+  if (rateLimitResponse) return rateLimitResponse;
+
+  return withAuth(async (req: NextRequest, userId: number) => {
+    try {
     const validation = validateQuery(req, getConversationsQuerySchema);
     if (!validation.success) {
       return validation.error;
     }
 
-    const { user_id: userId } = validation.data;
+      const { user_id: requestedUserId } = validation.data;
+      
+      // Verify the authenticated user matches the requested user_id
+      if (requestedUserId !== userId) {
+        return NextResponse.json(
+          { error: "Unauthorized: User ID mismatch" },
+          { status: 403 }
+        );
+      }
 
     const conversations = await Prisma.conversation.findMany({
       where: {
@@ -81,22 +96,36 @@ export async function GET(req: NextRequest) {
       })
     );
 
-    return NextResponse.json({ conversations: transformedConversations });
-  } catch (error) {
-    return handleError(error, req);
-  }
+      return NextResponse.json({ conversations: transformedConversations });
+    } catch (error) {
+      return handleError(error, req);
+    }
+  })(req);
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    const validation = await validateBody(req, createConversationSchema);
-    if (!validation.success) {
-      return validation.error;
-    }
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(req, writeRateLimiter);
+  if (rateLimitResponse) return rateLimitResponse;
 
-    const { participant1Id, participant2Id } = validation.data;
-    const parsedParticipant1Id = typeof participant1Id === "string" ? parseInt(participant1Id) : participant1Id;
-    const parsedParticipant2Id = typeof participant2Id === "string" ? parseInt(participant2Id) : participant2Id;
+  return withAuth(async (req: NextRequest, userId: number) => {
+    try {
+      const validation = await validateBody(req, createConversationSchema);
+      if (!validation.success) {
+        return validation.error;
+      }
+
+      const { participant1Id, participant2Id } = validation.data;
+      const parsedParticipant1Id = typeof participant1Id === "string" ? parseInt(participant1Id) : participant1Id;
+      const parsedParticipant2Id = typeof participant2Id === "string" ? parseInt(participant2Id) : participant2Id;
+      
+      // Verify the authenticated user is one of the participants
+      if (parsedParticipant1Id !== userId && parsedParticipant2Id !== userId) {
+        return NextResponse.json(
+          { error: "Unauthorized: You must be a participant in the conversation" },
+          { status: 403 }
+        );
+      }
 
     // Check if conversation already exists
     const existingConversation = await Prisma.conversation.findFirst({
@@ -144,8 +173,9 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ conversation });
-  } catch (error) {
-    return handleError(error, req);
-  }
+      return NextResponse.json({ conversation });
+    } catch (error) {
+      return handleError(error, req);
+    }
+  })(req);
 }

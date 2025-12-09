@@ -4,15 +4,31 @@ import { createCommentSchema } from "../../lib/schemas";
 import { validateBody } from "../../lib/validation";
 import { handleError } from "../../lib/errorHandler";
 import { NotFoundError } from "../../lib/errors";
+import { withAuth } from "../../lib/authMiddleware";
+import { withRateLimit, writeRateLimiter } from "../../lib/rateLimit";
 
 export async function POST(req: NextRequest) {
-  try {
-    const validation = await validateBody(req, createCommentSchema);
-    if (!validation.success) {
-      return validation.error;
-    }
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(req, writeRateLimiter);
+  if (rateLimitResponse) return rateLimitResponse;
 
-    const { comment, postid, userid, parentId } = validation.data;
+  return withAuth(async (req: NextRequest, userId: number) => {
+    try {
+      const validation = await validateBody(req, createCommentSchema);
+      if (!validation.success) {
+        return validation.error;
+      }
+
+      const { comment, postid, userid, parentId } = validation.data;
+      
+      // Verify the authenticated user matches the userid in the request
+      const parsedUserId = typeof userid === "string" ? parseInt(userid) : userid;
+      if (parsedUserId !== userId) {
+        return NextResponse.json(
+          { error: "Unauthorized: User ID mismatch" },
+          { status: 403 }
+        );
+      }
     
     // Verify post exists
     const post = await Prisma.post.findUnique({
@@ -40,8 +56,9 @@ export async function POST(req: NextRequest) {
         parentId: parentId ? (typeof parentId === "string" ? parseInt(parentId) : parentId) : undefined,
       },
     });
-    return NextResponse.json(res);
-  } catch (error) {
-    return handleError(error, req);
-  }
+      return NextResponse.json(res);
+    } catch (error) {
+      return handleError(error, req);
+    }
+  })(req);
 }

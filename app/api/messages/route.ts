@@ -4,20 +4,42 @@ import { getMessagesQuerySchema, createMessageSchema, updateMessageSchema } from
 import { validateQuery, validateBody } from "@/app/lib/validation";
 import { handleError } from "@/app/lib/errorHandler";
 import { NotFoundError } from "@/app/lib/errors";
+import { withAuth } from "@/app/lib/authMiddleware";
+import { withRateLimit, writeRateLimiter } from "@/app/lib/rateLimit";
 
 export async function GET(req: NextRequest) {
-  try {
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(req);
+  if (rateLimitResponse) return rateLimitResponse;
+
+  return withAuth(async (req: NextRequest, userId: number) => {
+    try {
     const validation = validateQuery(req, getMessagesQuerySchema);
     if (!validation.success) {
       return validation.error;
     }
 
-    const { conversation_id, limit, cursor } = validation.data;
+      const { conversation_id, limit, cursor } = validation.data;
 
-    const findManyArgs: any = {
-      where: {
-        conversationId: conversation_id,
-      },
+      // Verify user is a participant in the conversation
+      const conversation = await Prisma.conversation.findFirst({
+        where: {
+          id: conversation_id,
+          OR: [
+            { participant1Id: userId },
+            { participant2Id: userId },
+          ],
+        },
+      });
+
+      if (!conversation) {
+        throw new NotFoundError("Conversation or access denied");
+      }
+
+      const findManyArgs: any = {
+        where: {
+          conversationId: conversation_id,
+        },
       include: {
         sender: {
           select: {
@@ -43,25 +65,39 @@ export async function GET(req: NextRequest) {
     // Reverse the order to show oldest first
     const reversedMessages = messages.reverse();
 
-    return NextResponse.json({ 
-      messages: reversedMessages, 
-      nextCursor 
-    });
-  } catch (error) {
-    return handleError(error, req);
-  }
+      return NextResponse.json({ 
+        messages: reversedMessages, 
+        nextCursor 
+      });
+    } catch (error) {
+      return handleError(error, req);
+    }
+  })(req);
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    const validation = await validateBody(req, createMessageSchema);
-    if (!validation.success) {
-      return validation.error;
-    }
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(req, writeRateLimiter);
+  if (rateLimitResponse) return rateLimitResponse;
 
-    const { conversationId, senderId, content, messageType } = validation.data;
-    const parsedConversationId = typeof conversationId === "string" ? parseInt(conversationId) : conversationId;
-    const parsedSenderId = typeof senderId === "string" ? parseInt(senderId) : senderId;
+  return withAuth(async (req: NextRequest, userId: number) => {
+    try {
+      const validation = await validateBody(req, createMessageSchema);
+      if (!validation.success) {
+        return validation.error;
+      }
+
+      const { conversationId, senderId, content, messageType } = validation.data;
+      const parsedConversationId = typeof conversationId === "string" ? parseInt(conversationId) : conversationId;
+      const parsedSenderId = typeof senderId === "string" ? parseInt(senderId) : senderId;
+      
+      // Verify the authenticated user matches the senderId
+      if (parsedSenderId !== userId) {
+        return NextResponse.json(
+          { error: "Unauthorized: User ID mismatch" },
+          { status: 403 }
+        );
+      }
 
     // Verify conversation exists and user is a participant
     const conversation = await Prisma.conversation.findFirst({
@@ -119,29 +155,54 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ message });
-  } catch (error) {
-    return handleError(error, req);
-  }
+      return NextResponse.json({ message });
+    } catch (error) {
+      return handleError(error, req);
+    }
+  })(req);
 }
 
 export async function PUT(req: NextRequest) {
-  try {
-    const validation = await validateBody(req, updateMessageSchema);
-    if (!validation.success) {
-      return validation.error;
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(req, writeRateLimiter);
+  if (rateLimitResponse) return rateLimitResponse;
+
+  return withAuth(async (req: NextRequest, userId: number) => {
+    try {
+      const validation = await validateBody(req, updateMessageSchema);
+      if (!validation.success) {
+        return validation.error;
+      }
+
+      const { messageId, isRead } = validation.data;
+      const parsedMessageId = typeof messageId === "string" ? parseInt(messageId) : messageId;
+      
+      // Verify the message belongs to a conversation the user is part of
+      const message = await Prisma.message.findUnique({
+        where: { id: parsedMessageId },
+        include: { conversation: true },
+      });
+
+      if (!message) {
+        throw new NotFoundError("Message");
+      }
+
+      // Verify user is a participant in the conversation
+      if (message.conversation.participant1Id !== userId && message.conversation.participant2Id !== userId) {
+        return NextResponse.json(
+          { error: "Unauthorized: You can only update messages in your conversations" },
+          { status: 403 }
+        );
+      }
+
+      const updatedMessage = await Prisma.message.update({
+        where: { id: parsedMessageId },
+        data: { isRead },
+      });
+
+      return NextResponse.json({ message: updatedMessage });
+    } catch (error) {
+      return handleError(error, req);
     }
-
-    const { messageId, isRead } = validation.data;
-    const parsedMessageId = typeof messageId === "string" ? parseInt(messageId) : messageId;
-
-    const message = await Prisma.message.update({
-      where: { id: parsedMessageId },
-      data: { isRead },
-    });
-
-    return NextResponse.json({ message });
-  } catch (error) {
-    return handleError(error, req);
-  }
+  })(req);
 }

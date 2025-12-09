@@ -16,6 +16,8 @@
   "dependencies": {
     "@auth/prisma-adapter": "^1.5.1",
     "@prisma/client": "^5.11.0",
+    "@upstash/ratelimit": "^2.0.7",
+    "@upstash/redis": "^1.35.7",
     "axios": "^1.6.8",
     "bcrypt": "^5.1.1",
     "crypto": "^1.0.1",

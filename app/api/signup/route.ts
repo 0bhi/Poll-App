@@ -5,8 +5,13 @@ import { signupSchema } from "../../lib/schemas";
 import { validateBody } from "../../lib/validation";
 import { handleError } from "../../lib/errorHandler";
 import { ConflictError } from "../../lib/errors";
+import { withRateLimit, authRateLimiter } from "../../lib/rateLimit";
 
 export const POST = async (req: NextRequest) => {
+  // Apply stricter rate limiting for signup
+  const rateLimitResponse = await withRateLimit(req, authRateLimiter);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const validation = await validateBody(req, signupSchema);
     if (!validation.success) {

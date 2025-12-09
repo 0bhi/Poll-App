@@ -3,10 +3,15 @@ import { NextResponse, NextRequest } from "next/server";
 import { getPostsQuerySchema } from "../../lib/schemas";
 import { validateQuery } from "../../lib/validation";
 import { handleError } from "../../lib/errorHandler";
+import { withRateLimit } from "../../lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(req);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const validation = validateQuery(req, getPostsQuerySchema);
     if (!validation.success) {

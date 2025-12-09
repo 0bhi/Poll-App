@@ -3,15 +3,30 @@ import { NextRequest, NextResponse } from "next/server";
 import { getNotificationsQuerySchema } from "@/app/lib/schemas";
 import { validateQuery } from "@/app/lib/validation";
 import { handleError } from "@/app/lib/errorHandler";
+import { withAuth } from "@/app/lib/authMiddleware";
+import { withRateLimit } from "@/app/lib/rateLimit";
 
 export async function GET(req: NextRequest) {
-  try {
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(req);
+  if (rateLimitResponse) return rateLimitResponse;
+
+  return withAuth(async (req: NextRequest, userId: number) => {
+    try {
     const validation = validateQuery(req, getNotificationsQuerySchema);
     if (!validation.success) {
       return validation.error;
     }
 
-    const { user_id: userId } = validation.data;
+      const { user_id: requestedUserId } = validation.data;
+      
+      // Verify the authenticated user matches the requested user_id
+      if (requestedUserId !== userId) {
+        return NextResponse.json(
+          { error: "Unauthorized: User ID mismatch" },
+          { status: 403 }
+        );
+      }
 
     const notifications = await prisma.notifications.findMany({
       where: {
@@ -43,8 +58,9 @@ export async function GET(req: NextRequest) {
         };
       })
     );
-    return NextResponse.json({ notifications: notificationsWithActors });
-  } catch (error) {
-    return handleError(error, req);
-  }
+      return NextResponse.json({ notifications: notificationsWithActors });
+    } catch (error) {
+      return handleError(error, req);
+    }
+  })(req);
 }

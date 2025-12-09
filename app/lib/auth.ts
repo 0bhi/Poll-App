@@ -109,6 +109,10 @@ export const NEXT_AUTH_CONFIG = {
             counter++;
           }
 
+          // For OAuth users, generate a secure random password that cannot be used for credentials login
+          // This password is never exposed and OAuth users can only sign in via OAuth
+          const oauthPassword = crypto.randomBytes(64).toString("hex");
+          
           await Prisma.user.upsert({
             where: {
               email: profile.email,
@@ -119,7 +123,7 @@ export const NEXT_AUTH_CONFIG = {
               name: profile.name,
               username: finalUsername,
               profilePicture: profile.picture,
-              password: crypto.randomBytes(32).toString("hex"),
+              password: oauthPassword, // OAuth users cannot use credentials login
             },
           });
           return true;

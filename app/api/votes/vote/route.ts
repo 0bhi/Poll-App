@@ -4,8 +4,14 @@ import { getVoteQuerySchema, createVoteSchema, deleteVoteSchema } from "@/app/li
 import { validateQuery, validateBody } from "@/app/lib/validation";
 import { handleError } from "@/app/lib/errorHandler";
 import { ConflictError, NotFoundError } from "@/app/lib/errors";
+import { withAuth, getAuthUserId } from "@/app/lib/authMiddleware";
+import { withRateLimit, writeRateLimiter } from "@/app/lib/rateLimit";
 
 export async function GET(req: NextRequest) {
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(req);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const validation = validateQuery(req, getVoteQuerySchema);
     if (!validation.success) {
@@ -28,14 +34,29 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    const validation = await validateBody(req, createVoteSchema);
-    if (!validation.success) {
-      return validation.error;
-    }
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(req, writeRateLimiter);
+  if (rateLimitResponse) return rateLimitResponse;
 
-    const { user_id, post_id, option_id, postAuthorId, name } = validation.data;
-    const userId = typeof user_id === "string" ? parseInt(user_id) : user_id;
+  return withAuth(async (req: NextRequest, userId: number) => {
+    try {
+      const validation = await validateBody(req, createVoteSchema);
+      if (!validation.success) {
+        return validation.error;
+      }
+
+      const { user_id, post_id, option_id, postAuthorId, name } = validation.data;
+      const parsedUserId = typeof user_id === "string" ? parseInt(user_id) : user_id;
+      
+      // Verify the authenticated user matches the user_id in the request
+      if (parsedUserId !== userId) {
+        return NextResponse.json(
+          { error: "Unauthorized: User ID mismatch" },
+          { status: 403 }
+        );
+      }
+      
+      const userId = parsedUserId;
     const postId = typeof post_id === "string" ? parseInt(post_id) : post_id;
     const postAuthorIdNum = typeof postAuthorId === "string" ? parseInt(postAuthorId) : postAuthorId;
     const optionIdNum = typeof option_id === "string" ? parseInt(option_id) : option_id;
@@ -116,14 +137,20 @@ export async function POST(req: NextRequest) {
         post_id: postId,
       },
     });
-    return NextResponse.json({ res });
-  } catch (error) {
-    return handleError(error, req);
-  }
+      return NextResponse.json({ res });
+    } catch (error) {
+      return handleError(error, req);
+    }
+  })(req);
 }
 
 export async function DELETE(req: NextRequest) {
-  try {
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(req, writeRateLimiter);
+  if (rateLimitResponse) return rateLimitResponse;
+
+  return withAuth(async (req: NextRequest, userId: number) => {
+    try {
     const validation = await validateBody(req, deleteVoteSchema);
     if (!validation.success) {
       return validation.error;
@@ -132,13 +159,33 @@ export async function DELETE(req: NextRequest) {
     const { id } = validation.data;
     const parsedId = typeof id === "string" ? parseInt(id) : id;
 
-    const res = await Prisma.vote.delete({
-      where: {
-        id: parsedId,
-      },
-    });
-    return NextResponse.json({ res });
-  } catch (error) {
-    return handleError(error, req);
-  }
+      const vote = await Prisma.vote.findUnique({
+        where: { id: parsedId },
+      });
+
+      if (!vote) {
+        return NextResponse.json(
+          { error: "Vote not found" },
+          { status: 404 }
+        );
+      }
+
+      // Verify the authenticated user owns this vote
+      if (vote.user_id !== userId) {
+        return NextResponse.json(
+          { error: "Unauthorized: You can only delete your own votes" },
+          { status: 403 }
+        );
+      }
+
+      const res = await Prisma.vote.delete({
+        where: {
+          id: parsedId,
+        },
+      });
+      return NextResponse.json({ res });
+    } catch (error) {
+      return handleError(error, req);
+    }
+  })(req);
 }

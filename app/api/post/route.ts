@@ -5,15 +5,31 @@ import { createPostSchema, getPostQuerySchema } from "../../lib/schemas";
 import { validateBody, validateQuery } from "../../lib/validation";
 import { handleError } from "../../lib/errorHandler";
 import { NotFoundError, ValidationError } from "../../lib/errors";
+import { withAuth } from "../../lib/authMiddleware";
+import { withRateLimit, writeRateLimiter } from "../../lib/rateLimit";
 
 export async function POST(req: NextRequest) {
-  try {
-    const validation = await validateBody(req, createPostSchema);
-    if (!validation.success) {
-      return validation.error;
-    }
-    
-    const { text, options, user_id } = validation.data;
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(req, writeRateLimiter);
+  if (rateLimitResponse) return rateLimitResponse;
+
+  return withAuth(async (req: NextRequest, userId: number) => {
+    try {
+      const validation = await validateBody(req, createPostSchema);
+      if (!validation.success) {
+        return validation.error;
+      }
+      
+      const { text, options, user_id } = validation.data;
+      
+      // Verify the authenticated user matches the user_id in the request
+      const parsedUserId = typeof user_id === "string" ? parseInt(user_id) : user_id;
+      if (parsedUserId !== userId) {
+        return NextResponse.json(
+          { error: "Unauthorized: User ID mismatch" },
+          { status: 403 }
+        );
+      }
 
     const post = await Prisma.post.create({
       data: {
@@ -31,13 +47,18 @@ export async function POST(req: NextRequest) {
         },
       },
     });
-    return NextResponse.json(post);
-  } catch (error) {
-    return handleError(error, req);
-  }
+      return NextResponse.json(post);
+    } catch (error) {
+      return handleError(error, req);
+    }
+  })(req);
 }
 
 export async function GET(req: NextRequest) {
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(req);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const validation = validateQuery(req, getPostQuerySchema);
     if (!validation.success) {

@@ -4,40 +4,71 @@ import { getPostVoteQuerySchema, createPostVoteSchema } from "@/app/lib/schemas"
 import { validateQuery, validateBody } from "@/app/lib/validation";
 import { handleError } from "@/app/lib/errorHandler";
 import { ValidationError } from "@/app/lib/errors";
+import { withAuth } from "@/app/lib/authMiddleware";
+import { withRateLimit, writeRateLimiter } from "@/app/lib/rateLimit";
 
 export async function GET(req: NextRequest) {
-  try {
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(req);
+  if (rateLimitResponse) return rateLimitResponse;
+
+  return withAuth(async (req: NextRequest, userId: number) => {
+    try {
     const validation = validateQuery(req, getPostVoteQuerySchema);
     if (!validation.success) {
       return validation.error;
     }
 
-    const { user_id, post_id } = validation.data;
+      const { user_id, post_id } = validation.data;
+      
+      // Verify the authenticated user matches the user_id in the request
+      const parsedUserId = typeof user_id === "string" ? parseInt(user_id) : user_id;
+      if (parsedUserId !== userId) {
+        return NextResponse.json(
+          { error: "Unauthorized: User ID mismatch" },
+          { status: 403 }
+        );
+      }
 
-    const vote = await Prisma.postVote.findUnique({
-      where: {
-        user_id_post_id: {
-          user_id,
-          post_id,
+      const vote = await Prisma.postVote.findUnique({
+        where: {
+          user_id_post_id: {
+            user_id: parsedUserId,
+            post_id,
+          },
         },
-      },
-    });
-    return NextResponse.json({ type: vote?.type ?? null });
-  } catch (error) {
-    return handleError(error, req);
-  }
+      });
+
+      return NextResponse.json({ type: vote?.type ?? null });
+    } catch (error) {
+      return handleError(error, req);
+    }
+  })(req);
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    const validation = await validateBody(req, createPostVoteSchema);
-    if (!validation.success) {
-      return validation.error;
-    }
+  // Apply rate limiting
+  const rateLimitResponse = await withRateLimit(req, writeRateLimiter);
+  if (rateLimitResponse) return rateLimitResponse;
 
-    const { user_id, post_id, type } = validation.data;
-    const parsedUserId = typeof user_id === "string" ? parseInt(user_id) : user_id;
-    const parsedPostId = typeof post_id === "string" ? parseInt(post_id) : post_id;
+  return withAuth(async (req: NextRequest, userId: number) => {
+    try {
+      const validation = await validateBody(req, createPostVoteSchema);
+      if (!validation.success) {
+        return validation.error;
+      }
+
+      const { user_id, post_id, type } = validation.data;
+      const parsedUserId = typeof user_id === "string" ? parseInt(user_id) : user_id;
+      const parsedPostId = typeof post_id === "string" ? parseInt(post_id) : post_id;
+      
+      // Verify the authenticated user matches the user_id in the request
+      if (parsedUserId !== userId) {
+        return NextResponse.json(
+          { error: "Unauthorized: User ID mismatch" },
+          { status: 403 }
+        );
+      }
 
     if (type === "REMOVE") {
       await Prisma.postVote.deleteMany({
@@ -69,7 +100,8 @@ export async function POST(req: NextRequest) {
         message: `${type.charAt(0) + type.slice(1).toLowerCase()}d`,
       });
     }
-  } catch (error) {
-    return handleError(error, req);
-  }
+    } catch (error) {
+      return handleError(error, req);
+    }
+  })(req);
 }
