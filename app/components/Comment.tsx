@@ -55,9 +55,10 @@ const Comment: React.FC<CommentProps & { level?: number }> = ({
   const handleReply = () => {
     if (onReply && commentId) {
       onReply(replyText, commentId);
-      setReplyText("");
-      setShowReplyBox(false);
     }
+    // Always clear the reply box after submission
+    setReplyText("");
+    setShowReplyBox(false);
   };
 
   return (

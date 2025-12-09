@@ -8,13 +8,13 @@ export async function POST(req: NextRequest) {
       data: {
         text: body.comment,
         postId: parseInt(body.postid),
-        user_id: body.userid,
+        user_id: parseInt(body.userid),
         parentId: body.parentId ? parseInt(body.parentId) : undefined,
       },
     });
     return NextResponse.json(res);
   } catch (error) {
     console.log(error);
-    return NextResponse.json(error);
+    return NextResponse.json({ error: "Failed to create comment" }, { status: 500 });
   }
 }

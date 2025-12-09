@@ -38,5 +38,6 @@ export const POST = async (req: NextRequest) => {
     return NextResponse.json(user);
   } catch (error) {
     console.log(error);
+    return NextResponse.json({ error: "Failed to create user" }, { status: 500 });
   }
 };

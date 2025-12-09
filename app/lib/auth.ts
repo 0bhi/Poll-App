@@ -47,7 +47,16 @@ export const NEXT_AUTH_CONFIG = {
             email: user.email,
             username: user.username,
           };
-        } catch (error) {
+        } catch (error: any) {
+          // Re-throw specific authentication errors
+          if (error instanceof Error && (
+            error.message === "No user found with the given email" ||
+            error.message === "Invalid password" ||
+            error.message === "Missing credentials"
+          )) {
+            throw error;
+          }
+          // For other errors, log and throw generic error
           console.error(error);
           throw new Error("An unexpected error occurred during authentication");
         }
