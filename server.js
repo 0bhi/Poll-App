@@ -2,19 +2,13 @@ const { createServer } = require("http");
 const { parse } = require("url");
 const next = require("next");
 const { Server } = require("socket.io");
-const { PrismaClient } = require("@prisma/client");
+
+// Import the shared Prisma singleton to prevent connection pool exhaustion
+const prisma = require("./app/lib/db").default;
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
 const port = process.env.PORT || 3000;
-
-// Create a singleton Prisma instance to reuse across all socket events
-// This prevents connection pool exhaustion
-const prisma = global.prisma || new PrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  global.prisma = prisma;
-}
 
 // Prepare the Next.js app
 const app = next({ dev, hostname, port });
