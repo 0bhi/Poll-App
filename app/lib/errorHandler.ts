@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { AppError } from "./errors";
 import { logger } from "./logger";
 import { Prisma } from "@prisma/client";
+import { errorResponse } from "./apiResponse";
 
 /**
  * Handles errors and returns appropriate NextResponse
@@ -17,16 +18,12 @@ export function handleError(error: unknown, req?: NextRequest): NextResponse {
       method: req?.method,
     });
 
-    const response: { error: string; code?: string; details?: unknown } = {
-      error: error.message,
-      code: error.code,
-    };
-
-    if (error.details !== undefined) {
-      response.details = error.details;
-    }
-
-    return NextResponse.json(response, { status: error.statusCode });
+    return errorResponse(
+      error.message,
+      error.code,
+      error.details,
+      error.statusCode
+    );
   }
 
   // Handle Prisma errors
@@ -39,13 +36,7 @@ export function handleError(error: unknown, req?: NextRequest): NextResponse {
       path: req?.nextUrl?.pathname,
       method: req?.method,
     });
-    return NextResponse.json(
-      {
-        error: "Invalid data provided",
-        code: "VALIDATION_ERROR",
-      },
-      { status: 400 }
-    );
+    return errorResponse("Invalid data provided", "VALIDATION_ERROR", undefined, 400);
   }
 
   // Handle unknown errors
@@ -54,12 +45,11 @@ export function handleError(error: unknown, req?: NextRequest): NextResponse {
     method: req?.method,
   });
 
-  return NextResponse.json(
-    {
-      error: "An unexpected error occurred",
-      code: "INTERNAL_SERVER_ERROR",
-    },
-    { status: 500 }
+  return errorResponse(
+    "An unexpected error occurred",
+    "INTERNAL_SERVER_ERROR",
+    undefined,
+    500
   );
 }
 
@@ -80,42 +70,32 @@ function handlePrismaError(
   switch (error.code) {
     case "P2002":
       // Unique constraint violation
-      return NextResponse.json(
-        {
-          error: "A record with this value already exists",
-          code: "CONFLICT_ERROR",
-          details: error.meta,
-        },
-        { status: 409 }
+      return errorResponse(
+        "A record with this value already exists",
+        "CONFLICT_ERROR",
+        error.meta,
+        409
       );
 
     case "P2025":
       // Record not found
-      return NextResponse.json(
-        {
-          error: "Record not found",
-          code: "NOT_FOUND",
-        },
-        { status: 404 }
-      );
+      return errorResponse("Record not found", "NOT_FOUND", undefined, 404);
 
     case "P2003":
       // Foreign key constraint violation
-      return NextResponse.json(
-        {
-          error: "Referenced record does not exist",
-          code: "VALIDATION_ERROR",
-        },
-        { status: 400 }
+      return errorResponse(
+        "Referenced record does not exist",
+        "VALIDATION_ERROR",
+        undefined,
+        400
       );
 
     default:
-      return NextResponse.json(
-        {
-          error: "Database operation failed",
-          code: "DATABASE_ERROR",
-        },
-        { status: 500 }
+      return errorResponse(
+        "Database operation failed",
+        "DATABASE_ERROR",
+        undefined,
+        500
       );
   }
 }

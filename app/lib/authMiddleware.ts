@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { AuthenticationError } from "./errors";
+import { errorResponse } from "./apiResponse";
 
 /**
  * Authentication middleware to verify user sessions
@@ -52,9 +53,11 @@ export function withAuth<T extends unknown[]>(
       return await handler(req, userId, ...args);
     } catch (error) {
       if (error instanceof AuthenticationError) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: error.statusCode }
+        return errorResponse(
+          error.message,
+          error.code,
+          error.details,
+          error.statusCode
         );
       }
       throw error;

@@ -6,6 +6,7 @@ import { validateBody } from "../../lib/validation";
 import { handleError } from "../../lib/errorHandler";
 import { ConflictError } from "../../lib/errors";
 import { withRateLimit, authRateLimiter } from "../../lib/rateLimit";
+import { successResponse } from "../../lib/apiResponse";
 
 export const POST = async (req: NextRequest) => {
   // Apply stricter rate limiting for signup
@@ -47,7 +48,7 @@ export const POST = async (req: NextRequest) => {
       },
     });
 
-    return NextResponse.json(user);
+    return successResponse(user);
   } catch (error) {
     return handleError(error, req);
   }

@@ -5,6 +5,7 @@ import { validateQuery } from "@/app/lib/validation";
 import { handleError } from "@/app/lib/errorHandler";
 import { NotFoundError } from "@/app/lib/errors";
 import { withRateLimit } from "@/app/lib/rateLimit";
+import { successResponse } from "@/app/lib/apiResponse";
 
 export async function GET(req: NextRequest) {
   // Apply rate limiting
@@ -29,7 +30,7 @@ export async function GET(req: NextRequest) {
       throw new NotFoundError("User");
     }
 
-    return NextResponse.json(user);
+    return successResponse(user);
   } catch (error) {
     return handleError(error, req);
   }

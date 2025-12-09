@@ -6,6 +6,7 @@ import { handleError } from "@/app/lib/errorHandler";
 import { ConflictError, NotFoundError } from "@/app/lib/errors";
 import { withAuth, getAuthUserId } from "@/app/lib/authMiddleware";
 import { withRateLimit, writeRateLimiter } from "@/app/lib/rateLimit";
+import { successResponse, errorResponse } from "@/app/lib/apiResponse";
 
 export async function GET(req: NextRequest) {
   // Apply rate limiting
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ vote });
+    return successResponse(vote);
   } catch (error) {
     return handleError(error, req);
   }
@@ -50,10 +51,7 @@ export async function POST(req: NextRequest) {
       
       // Verify the authenticated user matches the user_id in the request
       if (parsedUserId !== userId) {
-        return NextResponse.json(
-          { error: "Unauthorized: User ID mismatch" },
-          { status: 403 }
-        );
+        return errorResponse("Unauthorized: User ID mismatch", "UNAUTHORIZED", undefined, 403);
       }
       
       const userId = parsedUserId;
@@ -137,7 +135,7 @@ export async function POST(req: NextRequest) {
         post_id: postId,
       },
     });
-      return NextResponse.json({ res });
+      return successResponse(res);
     } catch (error) {
       return handleError(error, req);
     }
@@ -164,18 +162,12 @@ export async function DELETE(req: NextRequest) {
       });
 
       if (!vote) {
-        return NextResponse.json(
-          { error: "Vote not found" },
-          { status: 404 }
-        );
+        return errorResponse("Vote not found", "NOT_FOUND", undefined, 404);
       }
 
       // Verify the authenticated user owns this vote
       if (vote.user_id !== userId) {
-        return NextResponse.json(
-          { error: "Unauthorized: You can only delete your own votes" },
-          { status: 403 }
-        );
+        return errorResponse("Unauthorized: You can only delete your own votes", "UNAUTHORIZED", undefined, 403);
       }
 
       const res = await Prisma.vote.delete({
@@ -183,7 +175,7 @@ export async function DELETE(req: NextRequest) {
           id: parsedId,
         },
       });
-      return NextResponse.json({ res });
+      return successResponse(res);
     } catch (error) {
       return handleError(error, req);
     }

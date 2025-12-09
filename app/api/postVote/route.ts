@@ -6,6 +6,7 @@ import { handleError } from "@/app/lib/errorHandler";
 import { ValidationError } from "@/app/lib/errors";
 import { withAuth } from "@/app/lib/authMiddleware";
 import { withRateLimit, writeRateLimiter } from "@/app/lib/rateLimit";
+import { successResponse, errorResponse } from "@/app/lib/apiResponse";
 
 export async function GET(req: NextRequest) {
   // Apply rate limiting
@@ -24,10 +25,7 @@ export async function GET(req: NextRequest) {
       // Verify the authenticated user matches the user_id in the request
       const parsedUserId = typeof user_id === "string" ? parseInt(user_id) : user_id;
       if (parsedUserId !== userId) {
-        return NextResponse.json(
-          { error: "Unauthorized: User ID mismatch" },
-          { status: 403 }
-        );
+        return errorResponse("Unauthorized: User ID mismatch", "UNAUTHORIZED", undefined, 403);
       }
 
       const vote = await Prisma.postVote.findUnique({
@@ -39,7 +37,7 @@ export async function GET(req: NextRequest) {
         },
       });
 
-      return NextResponse.json({ type: vote?.type ?? null });
+      return successResponse({ type: vote?.type ?? null });
     } catch (error) {
       return handleError(error, req);
     }
@@ -64,17 +62,14 @@ export async function POST(req: NextRequest) {
       
       // Verify the authenticated user matches the user_id in the request
       if (parsedUserId !== userId) {
-        return NextResponse.json(
-          { error: "Unauthorized: User ID mismatch" },
-          { status: 403 }
-        );
+        return errorResponse("Unauthorized: User ID mismatch", "UNAUTHORIZED", undefined, 403);
       }
 
     if (type === "REMOVE") {
       await Prisma.postVote.deleteMany({
         where: { user_id: parsedUserId, post_id: parsedPostId },
       });
-      return NextResponse.json({ message: "Vote removed" });
+      return successResponse({ message: "Vote removed" });
     }
     // UPVOTE or DOWNVOTE
     const existingVote = await Prisma.postVote.findUnique({
@@ -88,7 +83,7 @@ export async function POST(req: NextRequest) {
           where: { user_id_post_id: { user_id: parsedUserId, post_id: parsedPostId } },
           data: { type },
         });
-        return NextResponse.json({
+        return successResponse({
           message: `Changed vote to ${type.toLowerCase()}`,
         });
       }
@@ -96,7 +91,7 @@ export async function POST(req: NextRequest) {
       await Prisma.postVote.create({
         data: { user_id: parsedUserId, post_id: parsedPostId, type },
       });
-      return NextResponse.json({
+      return successResponse({
         message: `${type.charAt(0) + type.slice(1).toLowerCase()}d`,
       });
     }

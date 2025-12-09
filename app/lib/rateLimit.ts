@@ -1,6 +1,7 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { NextRequest, NextResponse } from "next/server";
+import { errorResponse } from "./apiResponse";
 
 // Initialize Redis client
 const redis = new Redis({
@@ -54,22 +55,22 @@ export async function withRateLimit(
     const { success, limit, remaining, reset } = await limiter.limit(identifier);
 
     if (!success) {
-      return NextResponse.json(
+      const retryAfter = Math.ceil((reset - Date.now()) / 1000);
+      const response = errorResponse(
+        "Too many requests",
+        "RATE_LIMIT_EXCEEDED",
         {
-          error: "Too many requests",
           message: "Rate limit exceeded. Please try again later.",
-          retryAfter: Math.ceil((reset - Date.now()) / 1000),
+          retryAfter,
         },
-        {
-          status: 429,
-          headers: {
-            "X-RateLimit-Limit": limit.toString(),
-            "X-RateLimit-Remaining": remaining.toString(),
-            "X-RateLimit-Reset": new Date(reset).toISOString(),
-            "Retry-After": Math.ceil((reset - Date.now()) / 1000).toString(),
-          },
-        }
+        429
       );
+      // Add rate limit headers
+      response.headers.set("X-RateLimit-Limit", limit.toString());
+      response.headers.set("X-RateLimit-Remaining", remaining.toString());
+      response.headers.set("X-RateLimit-Reset", new Date(reset).toISOString());
+      response.headers.set("Retry-After", retryAfter.toString());
+      return response;
     }
 
     return null; // No rate limit exceeded, continue

@@ -6,6 +6,7 @@ import { handleError } from "../../lib/errorHandler";
 import { NotFoundError } from "../../lib/errors";
 import { withAuth } from "../../lib/authMiddleware";
 import { withRateLimit, writeRateLimiter } from "../../lib/rateLimit";
+import { successResponse, errorResponse } from "../../lib/apiResponse";
 
 export async function POST(req: NextRequest) {
   // Apply rate limiting
@@ -24,10 +25,7 @@ export async function POST(req: NextRequest) {
       // Verify the authenticated user matches the userid in the request
       const parsedUserId = typeof userid === "string" ? parseInt(userid) : userid;
       if (parsedUserId !== userId) {
-        return NextResponse.json(
-          { error: "Unauthorized: User ID mismatch" },
-          { status: 403 }
-        );
+        return errorResponse("Unauthorized: User ID mismatch", "UNAUTHORIZED", undefined, 403);
       }
     
     // Verify post exists
@@ -56,7 +54,7 @@ export async function POST(req: NextRequest) {
         parentId: parentId ? (typeof parentId === "string" ? parseInt(parentId) : parentId) : undefined,
       },
     });
-      return NextResponse.json(res);
+      return successResponse(res);
     } catch (error) {
       return handleError(error, req);
     }

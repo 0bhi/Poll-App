@@ -4,6 +4,7 @@ import { getPostsQuerySchema } from "../../lib/schemas";
 import { validateQuery } from "../../lib/validation";
 import { handleError } from "../../lib/errorHandler";
 import { withRateLimit } from "../../lib/rateLimit";
+import { successResponse } from "../../lib/apiResponse";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
     const nextCursor =
       posts.length === take ? posts[posts.length - 1].id : null;
 
-    return NextResponse.json({ posts, nextCursor });
+    return successResponse(posts, { nextCursor });
   } catch (error) {
     return handleError(error, req);
   }

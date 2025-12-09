@@ -5,6 +5,7 @@ import { validateQuery, validateBody } from "@/app/lib/validation";
 import { handleError } from "@/app/lib/errorHandler";
 import { withAuth } from "@/app/lib/authMiddleware";
 import { withRateLimit, writeRateLimiter } from "@/app/lib/rateLimit";
+import { successResponse, errorResponse } from "@/app/lib/apiResponse";
 
 export async function GET(req: NextRequest) {
   // Apply rate limiting
@@ -22,10 +23,7 @@ export async function GET(req: NextRequest) {
       
       // Verify the authenticated user matches the requested user_id
       if (requestedUserId !== userId) {
-        return NextResponse.json(
-          { error: "Unauthorized: User ID mismatch" },
-          { status: 403 }
-        );
+        return errorResponse("Unauthorized: User ID mismatch", "UNAUTHORIZED", undefined, 403);
       }
 
     const conversations = await Prisma.conversation.findMany({
@@ -96,7 +94,7 @@ export async function GET(req: NextRequest) {
       })
     );
 
-      return NextResponse.json({ conversations: transformedConversations });
+      return successResponse(transformedConversations);
     } catch (error) {
       return handleError(error, req);
     }
@@ -121,10 +119,7 @@ export async function POST(req: NextRequest) {
       
       // Verify the authenticated user is one of the participants
       if (parsedParticipant1Id !== userId && parsedParticipant2Id !== userId) {
-        return NextResponse.json(
-          { error: "Unauthorized: You must be a participant in the conversation" },
-          { status: 403 }
-        );
+        return errorResponse("Unauthorized: You must be a participant in the conversation", "UNAUTHORIZED", undefined, 403);
       }
 
     // Check if conversation already exists
@@ -144,7 +139,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (existingConversation) {
-      return NextResponse.json({ conversation: existingConversation });
+      return successResponse(existingConversation);
     }
 
     // Create new conversation
@@ -173,7 +168,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-      return NextResponse.json({ conversation });
+      return successResponse(conversation);
     } catch (error) {
       return handleError(error, req);
     }

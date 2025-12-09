@@ -5,6 +5,7 @@ import { validateQuery } from "@/app/lib/validation";
 import { handleError } from "@/app/lib/errorHandler";
 import { withAuth } from "@/app/lib/authMiddleware";
 import { withRateLimit } from "@/app/lib/rateLimit";
+import { successResponse, errorResponse } from "@/app/lib/apiResponse";
 
 export async function GET(req: NextRequest) {
   // Apply rate limiting
@@ -22,10 +23,7 @@ export async function GET(req: NextRequest) {
       
       // Verify the authenticated user matches the requested user_id
       if (requestedUserId !== userId) {
-        return NextResponse.json(
-          { error: "Unauthorized: User ID mismatch" },
-          { status: 403 }
-        );
+        return errorResponse("Unauthorized: User ID mismatch", "UNAUTHORIZED", undefined, 403);
       }
 
     const notifications = await prisma.notifications.findMany({
@@ -58,7 +56,7 @@ export async function GET(req: NextRequest) {
         };
       })
     );
-      return NextResponse.json({ notifications: notificationsWithActors });
+      return successResponse(notificationsWithActors);
     } catch (error) {
       return handleError(error, req);
     }
