@@ -31,21 +31,57 @@ A modern, mobile-responsive polling application built with Next.js, TypeScript, 
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- **Node.js**: Version 20.x or higher (22.x recommended)
+- **npm**: Version 10.x or higher
+- **PostgreSQL**: Database server
+
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Set up environment variables:**
+   Copy `env.example` to `.env.local` and fill in your values:
+   ```bash
+   cp env.example .env.local
+   ```
+
+3. **Set up the database:**
+   ```bash
+   npx prisma migrate dev
+   ```
+
+### Running Locally
+
+This app consists of two separate services:
+
+**Option 1: Run both services together (recommended for development):**
 ```bash
+npm run dev:all
+```
+
+**Option 2: Run services separately:**
+```bash
+# Terminal 1: Next.js app
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Terminal 2: Socket.IO server
+npm run dev:socket
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**Note:** The Socket.IO server runs on port 3001 by default. Make sure `NEXT_PUBLIC_SOCKET_URL=http://localhost:3001` is set in your `.env.local`.
+
+### Architecture
+
+The app is split into two services:
+- **Next.js App** (port 3000): Frontend and API routes
+- **Socket.IO Server** (port 3001): Real-time chat and notifications
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for production deployment instructions.
 
 ## Mobile Responsiveness
 
@@ -96,8 +132,27 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This app uses a **split architecture** for easier deployment:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+- **Next.js App**: Deploy to [Vercel](https://vercel.com) (no custom server needed!)
+- **Socket.IO Server**: Deploy to [Railway](https://railway.app) or [Render](https://render.com)
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
+
+### Quick Deploy
+
+1. **Deploy Next.js to Vercel:**
+   - Connect your GitHub repo
+   - Vercel auto-detects Next.js
+   - Add environment variables
+   - Deploy!
+
+2. **Deploy Socket.IO to Railway:**
+   - Create new project
+   - Set start command: `npm run start:socket`
+   - Add environment variables
+   - Deploy!
+
+3. **Update `NEXT_PUBLIC_SOCKET_URL`** in Vercel with your Socket.IO service URL

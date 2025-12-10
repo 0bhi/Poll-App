@@ -4,14 +4,13 @@ import React, { useRef } from "react";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useSession } from "next-auth/react";
-import { FaRegBookmark } from "react-icons/fa6";
+import { FaRegBookmark, FaCheck, FaShareAlt } from "react-icons/fa";
 import {
   BiDownvote,
   BiUpvote,
   BiSolidUpvote,
   BiSolidDownvote,
 } from "react-icons/bi";
-import { FiShare2 } from "react-icons/fi";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Comment from "@/app/components/Comment";
@@ -60,29 +59,36 @@ const Post = () => {
       const postRes = await axios.get("/api/post", {
         params: { postid: id },
       });
-      if (postRes.data) {
-        setPost(postRes.data);
 
-        const votesArray = postRes.data.options.map(
+      // API returns { data: post }
+      const postData = postRes.data.data;
+      if (postData) {
+        setPost(postData);
+
+        const votesArray = postData.options.map(
           (option: any) => option.votes.length
         );
         setVotes(votesArray);
 
-        const formattedDate = formatDate(postRes.data.createdAt);
+        const formattedDate = formatDate(postData.createdAt);
         setDate(formattedDate);
-      }
 
-      const userRes = await axios.get("/api/users/user", {
-        params: { user_id: postRes.data.user_id },
-      });
+        // Fetch user data if user_id exists
+        if (postData.user_id) {
+          const userRes = await axios.get("/api/users/user", {
+            params: { user_id: String(postData.user_id) },
+          });
 
-      setName(userRes.data.name);
-      setUsername(userRes.data.username);
-      if (userRes.data.profilePicture) {
-        setProfilePicUrl(userRes.data.profilePicture);
-      } else {
-        const defaultProfilePic = "https://api.dicebear.com/7.x/identicon/svg";
-        setProfilePicUrl(defaultProfilePic);
+          setName(userRes.data.data?.name || "");
+          setUsername(userRes.data.data?.username || "");
+          if (userRes.data.data?.profilePicture) {
+            setProfilePicUrl(userRes.data.data.profilePicture);
+          } else {
+            const defaultProfilePic =
+              "https://api.dicebear.com/7.x/identicon/svg";
+            setProfilePicUrl(defaultProfilePic);
+          }
+        }
       }
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -98,27 +104,71 @@ const Post = () => {
   };
 
   const fetchVotes = async () => {
-    if (session.status === "authenticated") {
-      const voteRes = await axios.get("/api/votes/vote", {
-        params: { postId: id, userId: session.data?.user?.id },
-      });
+    if (session.status === "authenticated" && session.data?.user?.id && id) {
+      try {
+        // Fetch poll vote status
+        const voteRes = await axios.get("/api/votes/vote", {
+          params: { postId: String(id), userId: session.data.user.id },
+        });
 
-      if (voteRes.data.vote) {
-        setClickedOption(voteRes.data.vote.option_id);
-        if (voteRes.data.vote.user_id === parseInt(session.data?.user?.id)) {
+        // API returns { data: vote } where vote can be null or the vote object
+        if (voteRes.data.data) {
+          setClickedOption(voteRes.data.data.option_id);
           setIsClicked(true);
         }
+
+        // Fetch upvote/downvote status
+        const postVoteRes = await axios.get("/api/postVote", {
+          params: { post_id: String(id), user_id: session.data.user.id },
+        });
+
+        // API returns { data: { type: ... } }
+        const voteType = postVoteRes.data.data?.type;
+        if (voteType === "UPVOTE") {
+          setUpvoted(true);
+          setDownvoted(false);
+        } else if (voteType === "DOWNVOTE") {
+          setUpvoted(false);
+          setDownvoted(true);
+        } else {
+          setUpvoted(false);
+          setDownvoted(false);
+        }
+      } catch (error: any) {
+        // If no vote exists or error occurs, reset states
+        console.log("Error fetching votes:", error);
+        setUpvoted(false);
+        setDownvoted(false);
+        if (error.response?.status !== 404) {
+          // Only log if it's not a 404 (which is expected when no vote exists)
+          console.error(
+            "Vote fetch error:",
+            error.response?.data || error.message
+          );
+        }
       }
+    } else {
+      // Reset states if not authenticated
+      setUpvoted(false);
+      setDownvoted(false);
     }
   };
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [id]);
 
   useEffect(() => {
-    fetchVotes();
-  }, [session.status]);
+    if (session.status === "authenticated" && id) {
+      fetchVotes();
+    } else if (session.status === "unauthenticated") {
+      // Reset vote states when unauthenticated
+      setUpvoted(false);
+      setDownvoted(false);
+      setIsClicked(false);
+      setClickedOption(null);
+    }
+  }, [session.status, session.data?.user?.id, id]);
 
   const onChoice = async (choice: any, index: number) => {
     if (isClicked) return;
@@ -153,123 +203,192 @@ const Post = () => {
   };
 
   const handleUpvote = async () => {
-    if (downvoted) {
-      setDownvoted(false);
-      setUpvoted(true);
-      await axios.post("/api/upvote", {
-        user_id: session?.data.user?.id,
-        post_id: id,
-      });
+    if (session.status === "unauthenticated" || !session.data?.user?.id) {
+      console.log("Not authenticated or no user ID");
       return;
     }
-    if (!upvoted) {
-      setUpvoted(true);
-      await axios.post("/api/upvote", {
-        user_id: session?.data.user?.id,
-        post_id: id,
-      });
-    } else {
-      setUpvoted(false);
-      await axios.post("/api/remove-upvote", {
-        user_id: session?.data.user?.id,
-        post_id: id,
-      });
+
+    if (!id) {
+      console.log("No post ID");
+      return;
+    }
+
+    try {
+      if (downvoted) {
+        setDownvoted(false);
+        setUpvoted(true);
+        const res = await axios.post("/api/postVote", {
+          user_id: session.data.user.id,
+          post_id: String(id),
+          type: "UPVOTE",
+        });
+        if (!res || res.status < 200 || res.status >= 300) {
+          setDownvoted(true);
+          setUpvoted(false);
+        }
+        return;
+      }
+      if (!upvoted) {
+        setUpvoted(true);
+        const res = await axios.post("/api/postVote", {
+          user_id: session.data.user.id,
+          post_id: String(id),
+          type: "UPVOTE",
+        });
+        if (!res || res.status < 200 || res.status >= 300) {
+          setUpvoted(false);
+        }
+      } else {
+        setUpvoted(false);
+        const res = await axios.post("/api/postVote", {
+          user_id: session.data.user.id,
+          post_id: String(id),
+          type: "REMOVE",
+        });
+        if (!res || res.status < 200 || res.status >= 300) {
+          setUpvoted(true);
+        }
+      }
+    } catch (error: any) {
+      console.error("Error upvoting:", error);
+      // Revert state on error
+      if (downvoted) {
+        setDownvoted(true);
+        setUpvoted(false);
+      } else {
+        setUpvoted(!upvoted);
+      }
+      if (error.response) {
+        console.error("API Error:", error.response.data);
+      }
     }
   };
 
   const handleDownvote = async () => {
-    if (upvoted) {
-      setUpvoted(false);
-      setDownvoted(true);
-      await axios.post("/api/downvote", {
-        user_id: session?.data.user?.id,
-        post_id: id,
-      });
+    if (session.status === "unauthenticated" || !session.data?.user?.id) {
+      console.log("Not authenticated or no user ID");
       return;
     }
-    if (!downvoted) {
-      setDownvoted(true);
-      await axios.post("/api/downvote", {
-        user_id: session?.data.user?.id,
-        post_id: id,
-      });
-    } else {
-      setDownvoted(false);
-      await axios.post("/api/remove-downvote", {
-        user_id: session?.data.user?.id,
-        post_id: id,
-      });
+
+    if (!id) {
+      console.log("No post ID");
+      return;
+    }
+
+    try {
+      if (upvoted) {
+        setUpvoted(false);
+        setDownvoted(true);
+        const res = await axios.post("/api/postVote", {
+          user_id: session.data.user.id,
+          post_id: String(id),
+          type: "DOWNVOTE",
+        });
+        if (!res || res.status < 200 || res.status >= 300) {
+          setUpvoted(true);
+          setDownvoted(false);
+        }
+        return;
+      }
+      if (!downvoted) {
+        setDownvoted(true);
+        const res = await axios.post("/api/postVote", {
+          user_id: session.data.user.id,
+          post_id: String(id),
+          type: "DOWNVOTE",
+        });
+        if (!res || res.status < 200 || res.status >= 300) {
+          setDownvoted(false);
+        }
+      } else {
+        setDownvoted(false);
+        const res = await axios.post("/api/postVote", {
+          user_id: session.data.user.id,
+          post_id: String(id),
+          type: "REMOVE",
+        });
+        if (!res || res.status < 200 || res.status >= 300) {
+          setDownvoted(true);
+        }
+      }
+    } catch (error: any) {
+      console.error("Error downvoting:", error);
+      // Revert state on error
+      if (upvoted) {
+        setUpvoted(true);
+        setDownvoted(false);
+      } else {
+        setDownvoted(!downvoted);
+      }
+      if (error.response) {
+        console.error("API Error:", error.response.data);
+      }
     }
   };
 
   const handleComment = async () => {
+    if (!comment.trim() || !session.data?.user?.id) {
+      return;
+    }
+
     try {
       const res = await axios.post("/api/comment", {
         postid: id,
-        comment: comment,
-        userid: session?.data.user?.id,
+        comment: comment.trim(),
+        userid: session.data.user.id,
       });
-      if (res && res.data) {
+      if (res && res.data?.data) {
         setComment("");
-        setPost((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            comments: [
-              ...prev.comments,
-              {
-                text: comment,
-                user_id: session?.data.user?.id,
-              },
-            ],
-          };
+        // Refetch the post to get the updated comment with all data
+        const postRes = await axios.get("/api/post", {
+          params: { postid: id },
         });
+        if (postRes.data?.data) {
+          setPost(postRes.data.data);
+          const votesArray = postRes.data.data.options.map(
+            (option: any) => option.votes.length
+          );
+          setVotes(votesArray);
+        }
       }
-    } catch (error) {
-      console.log(error);
+    } catch (error: any) {
+      console.error("Error posting comment:", error);
+      if (error.response) {
+        console.error("API Error:", error.response.data);
+      }
     }
   };
 
   const handleReplyToComment = async (replyText: string, parentId: number) => {
+    if (!replyText.trim() || !session.data?.user?.id) {
+      return;
+    }
+
     try {
       const res = await axios.post("/api/comment", {
         postid: id,
-        comment: replyText,
-        userid: session?.data.user?.id,
+        comment: replyText.trim(),
+        userid: session.data.user.id,
         parentId: parentId,
       });
-      if (res && res.data) {
-        setPost((prev) => {
-          if (!prev) return prev;
-          const addReply = (comments: any[]): any[] =>
-            comments.map((c) => {
-              if (c.id === parentId) {
-                return {
-                  ...c,
-                  replies: [
-                    ...(c.replies || []),
-                    {
-                      ...res.data,
-                      text: replyText,
-                      user_id: session?.data.user?.id,
-                      replies: [],
-                    },
-                  ],
-                };
-              } else if (c.replies && c.replies.length > 0) {
-                return { ...c, replies: addReply(c.replies) };
-              } else {
-                return c;
-              }
-            });
-          return {
-            ...prev,
-            comments: addReply(prev.comments),
-          };
+      if (res && res.data?.data) {
+        // Refetch the post to get the updated comment structure with nested replies
+        const postRes = await axios.get("/api/post", {
+          params: { postid: id },
         });
+        if (postRes.data?.data) {
+          setPost(postRes.data.data);
+          const votesArray = postRes.data.data.options.map(
+            (option: any) => option.votes.length
+          );
+          setVotes(votesArray);
+        }
       }
-    } catch (error) {
-      console.log(error);
+    } catch (error: any) {
+      console.error("Error posting reply:", error);
+      if (error.response) {
+        console.error("API Error:", error.response.data);
+      }
     }
   };
 
@@ -281,206 +400,284 @@ const Post = () => {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-main scrollbar-hide">
+    <div className="h-full overflow-y-auto bg-gradient-to-b from-gray-900 to-gray-800 scrollbar-hide">
       <div className="max-w-4xl mx-auto p-4 space-y-6 pb-8">
         {/* Main Post Card */}
-        <div className="card group transition-all duration-300 ease-in-out rounded-xl shadow-sm bg-card text-main hover:shadow-lg">
+        <div className="group transition-all duration-300 ease-in-out rounded-xl shadow-sm bg-card text-main hover:shadow-xl hover:-translate-y-1 w-full border border-gray-200 dark:border-gray-700 overflow-hidden">
           {/* Header: Avatar + User Info */}
-          <div className="flex items-center gap-3 mb-4">
-            <div
-              className="avatar overflow-hidden bg-accent/20 cursor-pointer"
-              onClick={() => router.push(`/${username}`)}
-            >
-              <Image
-                src={profilePicUrl}
-                alt="ProfilePic"
-                className="object-cover"
-                width={48}
-                height={48}
-              />
-            </div>
-            <div className="flex flex-col">
-              <h1
+          <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+            <div className="relative flex-shrink-0">
+              <div
+                className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-gray-200 dark:ring-gray-700 transition-all duration-300 group-hover:ring-blue-400 dark:group-hover:ring-blue-500 cursor-pointer"
                 onClick={() => router.push(`/${username}`)}
-                className="heading-2 hover:underline cursor-pointer text-main"
               >
-                {name}
-              </h1>
-              <p
-                onClick={() => router.push(`/${username}`)}
-                className="text-gray-400 body-sm cursor-pointer"
-              >
-                {"@" + username}
-              </p>
+                <Image
+                  src={profilePicUrl}
+                  alt={`${name}'s profile`}
+                  className="object-cover w-full h-full"
+                  width={40}
+                  height={40}
+                />
+              </div>
             </div>
-            <span className="ml-auto text-xs text-gray-500">{date}</span>
+            <div className="flex flex-col min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span
+                  onClick={() => router.push(`/${username}`)}
+                  className="font-semibold text-sm md:text-base text-gray-900 dark:text-gray-100 truncate cursor-pointer hover:underline"
+                >
+                  {name || "Anonymous"}
+                </span>
+                {date && (
+                  <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+                    ·
+                  </span>
+                )}
+                {date && (
+                  <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+                    {date}
+                  </span>
+                )}
+              </div>
+              <span
+                onClick={() => router.push(`/${username}`)}
+                className="text-xs text-gray-500 dark:text-gray-400 truncate cursor-pointer"
+              >
+                @{username || "user"}
+              </span>
+            </div>
           </div>
 
-          {/* Post Content */}
-          <div className="mb-6">
-            <div className="text-lg leading-relaxed mb-6 text-main">
+          {/* Content */}
+          <div className="px-4 pb-4">
+            <div className="text-base md:text-lg leading-relaxed mb-4 text-gray-900 dark:text-gray-100 font-medium">
               {post?.text}
             </div>
 
-            {/* Poll Options */}
-            <div className="grid grid-cols-2 gap-4">
-              {post?.options?.map((option: any, index: number) => (
-                <div key={option.id} className="flex flex-col gap-2">
-                  {/* Option number indicator for unvoted polls */}
-                  {!isClicked && (
-                    <div className="text-xs text-gray-500 font-medium mb-1">
-                      Option {index + 1}
-                    </div>
-                  )}
-                  <button
-                    className={`relative rounded-xl py-4 px-4 body-lg font-medium transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-offset-2 text-sm border-2 flex items-center gap-2 overflow-hidden group
-                       ${
-                         option.id == clickedOption
-                           ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white border-blue-600 shadow-lg transform scale-105"
-                           : "bg-gray-800 text-white border-gray-600 hover:border-blue-400 hover:bg-gray-700 hover:shadow-md hover:scale-102"
-                       }
-                       ${
-                         !isClicked
-                           ? "hover:scale-102 active:scale-98"
-                           : "cursor-default"
-                       }`}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onChoice(option, index);
-                    }}
-                    disabled={isClicked || session.status === "unauthenticated"}
-                  >
-                    <span className="font-semibold">{option.text}</span>
-                    <span
-                      className={`ml-auto text-xs ${
-                        option.id == clickedOption ? "opacity-90" : "opacity-60"
-                      }`}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {post?.options?.map((option: any, index: number) => {
+                const isSelected = option.id == clickedOption;
+                const percentage = getPercentages()[index];
+                const hasVotes = votes[index] > 0;
+
+                return (
+                  <div key={option.id} className="flex flex-col gap-2">
+                    <button
+                      className={`relative rounded-lg py-3 px-4 font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 text-sm md:text-base flex items-center gap-2 overflow-hidden min-h-[52px] group/option
+                        ${
+                          isSelected
+                            ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white border-2 border-blue-500 shadow-lg shadow-blue-500/20 scale-[1.02]"
+                            : "bg-gray-50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border-2 border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:shadow-md"
+                        }
+                        ${
+                          !isClicked && session.status === "authenticated"
+                            ? "hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                            : "cursor-default"
+                        }`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onChoice(option, index);
+                      }}
+                      disabled={
+                        isClicked || session.status === "unauthenticated"
+                      }
                     >
-                      {votes[index]} votes
-                    </span>
-
-                    {/* Animated background for selected option */}
-                    {option.id == clickedOption && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 animate-pulse-slow" />
-                    )}
-
-                    {/* Subtle hover effect for unselected options */}
-                    {option.id != clickedOption && !isClicked && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-50/50 to-purple-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    )}
-                  </button>
-
-                  {/* Enhanced poll result bar - always show when there are votes */}
-                  {(votes[index] > 0 || isClicked) && (
-                    <div className="space-y-1">
-                      <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden shadow-inner">
-                        <div
-                          className="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-1000 ease-out rounded-full relative"
-                          style={{ width: `${getPercentages()[index]}%` }}
+                      {isSelected && (
+                        <div className="flex-shrink-0 w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+                          <FaCheck className="w-3 h-3 text-white" />
+                        </div>
+                      )}
+                      <span className="font-semibold truncate flex-1 text-left">
+                        {option.text}
+                      </span>
+                      {hasVotes && (
+                        <span
+                          className={`ml-auto text-xs font-semibold flex-shrink-0 px-2 py-1 rounded-full ${
+                            isSelected
+                              ? "bg-white/20 text-white"
+                              : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                          }`}
                         >
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse-slow" />
+                          {votes[index]}
+                        </span>
+                      )}
+
+                      {/* Shine effect for selected option */}
+                      {isSelected && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/option:translate-x-full transition-transform duration-1000" />
+                      )}
+                    </button>
+
+                    {/* Poll result bar - show when voted or has votes */}
+                    {(hasVotes || isClicked) && (
+                      <div className="space-y-1.5">
+                        <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all duration-700 ease-out rounded-full relative ${
+                              isSelected
+                                ? "bg-gradient-to-r from-blue-400 to-blue-500"
+                                : "bg-gradient-to-r from-blue-500 to-indigo-500"
+                            }`}
+                            style={{ width: `${percentage}%` }}
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse-slow" />
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span
+                            className={`text-xs font-semibold ${
+                              isSelected
+                                ? "text-blue-600 dark:text-blue-400"
+                                : "text-gray-600 dark:text-gray-400"
+                            }`}
+                          >
+                            {percentage}%
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {votes[index]}{" "}
+                            {votes[index] === 1 ? "vote" : "votes"}
+                          </span>
                         </div>
                       </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-blue-400 font-bold">
-                          {getPercentages()[index]}%
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Show vote count even when no votes yet */}
-                  {votes[index] === 0 && !isClicked && (
-                    <div className="text-xs text-gray-400 text-center mt-1">
-                      0 votes
-                    </div>
-                  )}
-                </div>
-              ))}
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
           {/* Actions Row */}
-          <div className="flex items-center justify-around px-2 py-3 gap-4 border-t border-gray-200 dark:border-gray-700">
-            <button
-              onClick={handleUpvote}
-              className={`icon text-blue-700 hover:scale-110 active:scale-95 transition-transform ${
-                upvoted ? "font-bold" : ""
-              }`}
-              aria-label="Upvote"
-            >
-              {upvoted ? <BiSolidUpvote /> : <BiUpvote />}
-            </button>
-            <button
-              onClick={handleDownvote}
-              className={`icon text-red-500 hover:scale-110 active:scale-95 transition-transform ${
-                downvoted ? "font-bold" : ""
-              }`}
-              aria-label="Downvote"
-            >
-              {downvoted ? <BiSolidDownvote /> : <BiDownvote />}
-            </button>
-            <button className="icon text-accent hover:scale-110 active:scale-95 transition-transform">
-              <FiShare2 />
-            </button>
-            <button className="icon text-accent hover:scale-110 active:scale-95 transition-transform">
-              <FaRegBookmark />
-            </button>
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
+            <div className="flex items-center gap-1">
+              <button
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  handleUpvote();
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 ${
+                  upvoted
+                    ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
+                    : "text-gray-600 dark:text-gray-400"
+                }`}
+                aria-label="Upvote"
+              >
+                {upvoted ? (
+                  <BiSolidUpvote
+                    size={20}
+                    className="text-blue-600 dark:text-blue-400"
+                  />
+                ) : (
+                  <BiUpvote size={20} />
+                )}
+                <span className="text-xs font-medium">Upvote</span>
+              </button>
+              <button
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  handleDownvote();
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 ${
+                  downvoted
+                    ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20"
+                    : "text-gray-600 dark:text-gray-400"
+                }`}
+                aria-label="Downvote"
+              >
+                {downvoted ? (
+                  <BiSolidDownvote
+                    size={20}
+                    className="text-red-600 dark:text-red-400"
+                  />
+                ) : (
+                  <BiDownvote size={20} />
+                )}
+                <span className="text-xs font-medium">Downvote</span>
+              </button>
+            </div>
+            <div className="flex items-center gap-1">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95">
+                <FaShareAlt size={16} />
+              </button>
+              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95">
+                <FaRegBookmark size={16} />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Comment Section */}
-        <div className="card rounded-xl shadow-sm bg-card text-main">
-          <h2 className="heading-2 mb-4 text-main">Comments</h2>
+        <div className="group transition-all duration-300 ease-in-out rounded-xl shadow-sm bg-card text-main hover:shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-4 md:px-6 pt-4 pb-4">
+            <h2 className="heading-2 mb-4 text-gray-900 dark:text-gray-100">
+              Comments
+            </h2>
 
-          {/* Comment Input */}
-          <div className="flex gap-4 mb-6">
-            <div className="avatar overflow-hidden bg-accent/20">
-              {session.data && (
-                <Image
-                  src={session?.data.user?.image}
-                  alt="ProfilePic"
-                  className="object-cover"
-                  width={48}
-                  height={48}
+            {/* Comment Input */}
+            <div className="flex gap-3 mb-4">
+              <div className="relative flex-shrink-0">
+                {session.data && (
+                  <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-gray-200 dark:ring-gray-700 transition-all duration-300">
+                    <Image
+                      src={
+                        session?.data.user?.image ||
+                        "https://api.dicebear.com/7.x/identicon/svg"
+                      }
+                      alt="Your profile"
+                      className="object-cover w-full h-full"
+                      width={40}
+                      height={40}
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1">
+                <textarea
+                  className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-sm md:text-base"
+                  placeholder="Write a comment..."
+                  ref={textareaRef}
+                  onInput={handleInput}
+                  rows={3}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
                 />
-              )}
-            </div>
-            <div className="flex-1">
-              <textarea
-                className="input w-full body-sm bg-card text-main placeholder:text-gray-500 resize-none"
-                placeholder="Write a comment..."
-                ref={textareaRef}
-                onInput={handleInput}
-                rows={3}
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-              />
-              <div className="flex justify-end mt-2">
-                <button
-                  onClick={handleComment}
-                  className="button text-sm py-compact px-compact"
-                  disabled={!comment.trim()}
-                >
-                  Comment
-                </button>
+                <div className="flex justify-end mt-3">
+                  <button
+                    onClick={handleComment}
+                    className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-200 ${
+                      comment.trim()
+                        ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 shadow-md hover:shadow-lg active:scale-95"
+                        : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                    }`}
+                    disabled={!comment.trim()}
+                  >
+                    Comment
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Comments List */}
-          <div className="space-y-4">
-            {post?.comments?.map((comment, index) => (
-              <Comment
-                comment={comment.text}
-                userid={comment.user_id}
-                index={index}
-                key={comment.id || index}
-                replies={comment.replies}
-                onReply={handleReplyToComment}
-                commentId={comment.id}
-              />
-            ))}
+          <div className="space-y-4 mt-4 mb-6 mx-2">
+            {post?.comments && post.comments.length > 0 ? (
+              post.comments.map((comment, index) => (
+                <Comment
+                  comment={comment.text}
+                  userid={comment.user_id}
+                  index={index}
+                  key={comment.id || index}
+                  replies={comment.replies || []}
+                  onReply={handleReplyToComment}
+                  commentId={comment.id}
+                />
+              ))
+            ) : (
+              <div className="text-center text-gray-500 dark:text-gray-400 py-8 text-sm">
+                No comments yet. Be the first to comment!
+              </div>
+            )}
           </div>
         </div>
       </div>

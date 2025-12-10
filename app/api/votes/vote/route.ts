@@ -54,7 +54,6 @@ export async function POST(req: NextRequest) {
         return errorResponse("Unauthorized: User ID mismatch", "UNAUTHORIZED", undefined, 403);
       }
       
-      const userId = parsedUserId;
     const postId = typeof post_id === "string" ? parseInt(post_id) : post_id;
     const postAuthorIdNum = typeof postAuthorId === "string" ? parseInt(postAuthorId) : postAuthorId;
     const optionIdNum = typeof option_id === "string" ? parseInt(option_id) : option_id;

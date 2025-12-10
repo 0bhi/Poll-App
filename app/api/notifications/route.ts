@@ -1,11 +1,9 @@
 import prisma from "@/app/lib/db";
-import { NextRequest, NextResponse } from "next/server";
-import { getNotificationsQuerySchema } from "@/app/lib/schemas";
-import { validateQuery } from "@/app/lib/validation";
+import { NextRequest } from "next/server";
 import { handleError } from "@/app/lib/errorHandler";
 import { withAuth } from "@/app/lib/authMiddleware";
 import { withRateLimit } from "@/app/lib/rateLimit";
-import { successResponse, errorResponse } from "@/app/lib/apiResponse";
+import { successResponse } from "@/app/lib/apiResponse";
 
 export async function GET(req: NextRequest) {
   // Apply rate limiting
@@ -14,19 +12,9 @@ export async function GET(req: NextRequest) {
 
   return withAuth(async (req: NextRequest, userId: number) => {
     try {
-    const validation = validateQuery(req, getNotificationsQuerySchema);
-    if (!validation.success) {
-      return validation.error;
-    }
-
-      const { user_id: requestedUserId } = validation.data;
-      
-      // Verify the authenticated user matches the requested user_id
-      if (requestedUserId !== userId) {
-        return errorResponse("Unauthorized: User ID mismatch", "UNAUTHORIZED", undefined, 403);
-      }
-
-    const notifications = await prisma.notifications.findMany({
+      // Use authenticated user ID directly - no need for query parameter
+      // This is more secure and avoids validation errors when session is loading
+      const notifications = await prisma.notifications.findMany({
       where: {
         user_id: userId,
       },

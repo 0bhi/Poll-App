@@ -20,31 +20,37 @@ export async function POST(req: NextRequest) {
       if (!validation.success) {
         return validation.error;
       }
-      
+
       const { text, options, user_id } = validation.data;
-      
+
       // Verify the authenticated user matches the user_id in the request
-      const parsedUserId = typeof user_id === "string" ? parseInt(user_id) : user_id;
+      const parsedUserId =
+        typeof user_id === "string" ? parseInt(user_id) : user_id;
       if (parsedUserId !== userId) {
-        return errorResponse("Unauthorized: User ID mismatch", "UNAUTHORIZED", undefined, 403);
+        return errorResponse(
+          "Unauthorized: User ID mismatch",
+          "UNAUTHORIZED",
+          undefined,
+          403
+        );
       }
 
-    const post = await Prisma.post.create({
-      data: {
-        text,
-        options: {
-          create: options.map((option: string) => ({ text: option })),
+      const post = await Prisma.post.create({
+        data: {
+          text,
+          options: {
+            create: options.map((option: string) => ({ text: option })),
+          },
+          user_id: typeof user_id === "string" ? parseInt(user_id) : user_id,
         },
-        user_id: typeof user_id === "string" ? parseInt(user_id) : user_id,
-      },
-      include: {
-        options: {
-          include: {
-            votes: true,
+        include: {
+          options: {
+            include: {
+              votes: true,
+            },
           },
         },
-      },
-    });
+      });
       return successResponse(post);
     } catch (error) {
       return handleError(error, req);
@@ -78,11 +84,7 @@ export async function GET(req: NextRequest) {
             votes: true,
           },
         },
-        comments: {
-          include: {
-            replies: true,
-          },
-        },
+        comments: true, // Fetch all comments for this post
       },
     });
 
@@ -90,7 +92,68 @@ export async function GET(req: NextRequest) {
       throw new NotFoundError("Post");
     }
 
-    return successResponse(post);
+    // Build comment tree: separate top-level comments from replies
+    // Helper function to recursively build nested replies
+    const buildCommentTree = (comments: any[]): any[] => {
+      const commentMap = new Map<number, any>();
+      const rootComments: any[] = [];
+
+      // First pass: create a map of all comments with empty replies array
+      comments.forEach((comment) => {
+        commentMap.set(comment.id, {
+          ...comment,
+          replies: [],
+        });
+      });
+
+      // Second pass: build the tree structure
+      comments.forEach((comment) => {
+        const commentNode = commentMap.get(comment.id)!;
+        if (comment.parentId === null || comment.parentId === undefined) {
+          // This is a top-level comment
+          rootComments.push(commentNode);
+        } else {
+          // This is a reply, add it to its parent's replies
+          const parent = commentMap.get(comment.parentId);
+          if (parent) {
+            parent.replies.push(commentNode);
+          } else {
+            // Parent not found, treat as root comment (shouldn't happen, but safety check)
+            rootComments.push(commentNode);
+          }
+        }
+      });
+
+      // Recursively sort replies for each comment
+      const sortReplies = (comment: any) => {
+        if (comment.replies && comment.replies.length > 0) {
+          comment.replies.sort(
+            (a: any, b: any) =>
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+          comment.replies.forEach(sortReplies);
+        }
+      };
+
+      rootComments.forEach(sortReplies);
+      rootComments.sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+
+      return rootComments;
+    };
+
+    // Build the comment tree
+    const structuredComments = buildCommentTree(post.comments);
+
+    // Return post with structured comments
+    const postWithStructuredComments = {
+      ...post,
+      comments: structuredComments,
+    };
+
+    return successResponse(postWithStructuredComments);
   } catch (error) {
     return handleError(error, req);
   }

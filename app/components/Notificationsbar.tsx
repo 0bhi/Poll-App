@@ -127,23 +127,28 @@ export default function Notificationsbar() {
   const [notifs, setNotifs] = useState<NotificationType[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    const fetchNotifs = async (userId: string) => {
+    const fetchNotifs = async () => {
+      // Only fetch if user is authenticated
+      if (!session?.data?.user?.id) {
+        setLoading(false);
+        return;
+      }
+      
       setLoading(true);
       try {
-        const res = await axios.get("/api/notifications", {
-          params: { user_id: userId },
-        });
+        // No need to pass user_id - API uses authenticated user from session
+        const res = await axios.get("/api/notifications");
         setNotifs(
-          Array.isArray(res.data.notifications) ? res.data.notifications : []
+          Array.isArray(res.data.data) ? res.data.data : []
         );
       } catch (error) {
         setNotifs([]);
+      } finally {
         setLoading(false);
       }
-      setLoading(false);
     };
-    fetchNotifs(session?.data?.user?.id);
-  }, [session.data?.user.id]);
+    fetchNotifs();
+  }, [session?.data?.user?.id]);
 
   return (
     <div className="h-screen flex flex-col">

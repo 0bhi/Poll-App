@@ -76,7 +76,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
   // Initialize socket connection
   useEffect(() => {
     if (session?.user?.id) {
-      const newSocket = io(process.env.NEXTAUTH_URL || "http://localhost:3000");
+      // Connect to separate Socket.IO server
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
+      const newSocket = io(socketUrl);
 
       newSocket.on("connect", () => {
         console.log("Connected to socket server");

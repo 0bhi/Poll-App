@@ -26,13 +26,13 @@ export default function Feed() {
       },
     });
 
-    const newPosts = res.data.posts || [];
+    const newPosts = res.data.data || [];
     if (cursor) {
       setPosts((prev) => [...prev, ...newPosts]);
     } else {
       setPosts(newPosts);
     }
-    setCursor(res.data.nextCursor);
+    setCursor(res.data.meta?.nextCursor || null);
     setLoading(false);
   };
 

@@ -53,7 +53,7 @@ const Editbox = ({ onPostCreated }: { onPostCreated: (post: any) => void }) => {
         user_id: session.user.id,
       });
 
-      if (response.data) {
+      if (response.data?.data) {
         // Clear form
         setText("");
         setOption1("");
@@ -61,8 +61,17 @@ const Editbox = ({ onPostCreated }: { onPostCreated: (post: any) => void }) => {
         setOption3("");
         setOption4("");
 
+        // Extract the post data and format it to match the expected structure
+        const postData = response.data.data;
+        const formattedPost = {
+          id: String(postData.id),
+          text: postData.text,
+          options: postData.options || [],
+          user_id: String(postData.user_id),
+        };
+
         // Call the callback to add the new post to the feed
-        onPostCreated(response.data);
+        onPostCreated(formattedPost);
       }
     } catch (error) {
       console.error("Error creating poll:", error);
