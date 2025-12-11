@@ -44,7 +44,6 @@ This application has been refactored to use a **split architecture** where Socke
 ```
 Poll-App/
 ├── socket-server.js          # Socket.IO service (separate)
-├── server.js                  # Next.js custom server (optional, for local dev)
 ├── app/                       # Next.js app directory
 │   ├── components/
 │   │   └── chat/

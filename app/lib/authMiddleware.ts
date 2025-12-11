@@ -17,9 +17,18 @@ export async function requireAuth(req: NextRequest): Promise<number> {
     throw new AuthenticationError("Authentication required");
   }
 
-  const userId =
-    typeof token.id === "string" ? parseInt(token.id, 10) : token.id;
-  if (isNaN(userId)) {
+  const rawId = token.id;
+  let userId: number;
+
+  if (typeof rawId === "string") {
+    userId = Number.parseInt(rawId, 10);
+  } else if (typeof rawId === "number") {
+    userId = rawId;
+  } else {
+    throw new AuthenticationError("Invalid user session");
+  }
+
+  if (!Number.isFinite(userId)) {
     throw new AuthenticationError("Invalid user session");
   }
 

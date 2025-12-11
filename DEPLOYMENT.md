@@ -61,7 +61,7 @@ NODE_ENV=production
 4. Add environment variables (see above)
 5. Deploy!
 
-**Note**: Vercel will automatically detect Next.js and use `next dev`/`next start`. The custom `server.js` is no longer needed for Vercel deployment.
+**Note**: Vercel automatically uses the built-in Next.js server (`next dev`/`next start`); no custom `server.js` is present or required.
 
 ### 2. Deploy Socket.IO Server to Railway
 
