@@ -24,6 +24,7 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
   onClose,
 }) => {
   const { data: session } = useSession();
+  const { setCurrentConversation, refreshConversations } = useChat();
   const [searchQuery, setSearchQuery] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -40,9 +41,11 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
           current_user_id: session.user.id,
         },
       });
-      setUsers(response.data.users || []);
+      // API returns { data: users[] }, so access response.data.data
+      setUsers(response.data?.data || []);
     } catch (error) {
       console.error('Error searching users:', error);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -63,36 +66,86 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
   const startConversation = async (user: User) => {
     if (!session?.user?.id) return;
 
+    setLoading(true);
     try {
       const response = await axios.post('/api/conversations', {
         participant1Id: parseInt(session.user.id),
         participant2Id: user.id,
       });
 
-      if (response.data.conversation) {
-        // Close modal and refresh conversations
+      // API returns { data: conversation }, so access response.data.data
+      const conversation = response.data?.data;
+      
+      if (!conversation) {
+        throw new Error('No conversation data received');
+      }
+
+      // Get the other user from the conversation
+      const otherUser = conversation.participant1Id === parseInt(session.user.id)
+        ? conversation.participant2
+        : conversation.participant1;
+
+      if (!otherUser) {
+        throw new Error('Could not determine other user in conversation');
+      }
+      
+      const transformedConversation = {
+        id: conversation.id,
+        otherUser: {
+          id: otherUser.id,
+          name: otherUser.name,
+          username: otherUser.username,
+          profilePicture: otherUser.profilePicture,
+        },
+        lastMessage: null,
+        unreadCount: 0,
+        updatedAt: conversation.updatedAt || conversation.createdAt || new Date().toISOString(),
+      };
+
+        // Set the new conversation as current and close modal
+        setCurrentConversation(transformedConversation);
         onClose();
         setSearchQuery('');
         setUsers([]);
         setSelectedUser(null);
-        // You might want to trigger a refresh of conversations here
-      }
-    } catch (error) {
+        
+        // Refresh conversations list
+        if (refreshConversations) {
+          await refreshConversations();
+        }
+    } catch (error: any) {
       console.error('Error starting conversation:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      
+      // Show error message to user
+      let errorMessage = 'Failed to start conversation. Please try again.';
+      
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
+      <div className="bg-gradient-to-b from-gray-900 to-gray-800 rounded-lg shadow-xl w-full max-w-md mx-4 border border-gray-700">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-main">New Conversation</h2>
+        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <h2 className="text-lg font-semibold text-white">New Conversation</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            className="text-gray-400 hover:text-white transition-colors"
           >
             <FaTimes />
           </button>
@@ -107,24 +160,24 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
               placeholder="Search users..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent bg-white dark:bg-gray-700 text-main"
+              className="w-full pl-10 pr-4 py-2 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-800 text-white placeholder-gray-400"
             />
           </div>
         </div>
 
         {/* Users List */}
-        <div className="max-h-96 overflow-y-auto">
+        <div className="max-h-96 overflow-y-auto scrollbar-hide">
           {loading ? (
-            <div className="p-4 text-center text-gray-500">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent mx-auto"></div>
-              <p className="mt-2">Searching...</p>
+            <div className="p-4 text-center text-gray-400">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+              <p className="mt-2 text-gray-300">Searching...</p>
             </div>
           ) : users.length > 0 ? (
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+            <div className="divide-y divide-gray-700">
               {users.map((user) => (
                 <div
                   key={user.id}
-                  className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                  className="p-4 hover:bg-gray-800 cursor-pointer transition-colors"
                   onClick={() => startConversation(user)}
                 >
                   <div className="flex items-center space-x-3">
@@ -136,27 +189,27 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
                       className="rounded-full object-cover"
                     />
                     <div className="flex-1">
-                      <h3 className="font-medium text-main">{user.name}</h3>
-                      <p className="text-sm text-gray-500">@{user.username}</p>
+                      <h3 className="font-medium text-white">{user.name}</h3>
+                      <p className="text-sm text-gray-400">@{user.username}</p>
                       {user.bio && (
-                        <p className="text-xs text-gray-400 mt-1 truncate">
+                        <p className="text-xs text-gray-500 mt-1 truncate">
                           {user.bio}
                         </p>
                       )}
                     </div>
-                    <FaUserPlus className="text-accent" />
+                    <FaUserPlus className="text-blue-500" />
                   </div>
                 </div>
               ))}
             </div>
           ) : searchQuery.trim() ? (
-            <div className="p-4 text-center text-gray-500">
+            <div className="p-4 text-center text-gray-400">
               <p>No users found</p>
             </div>
           ) : (
-            <div className="p-4 text-center text-gray-500">
+            <div className="p-4 text-center text-gray-400">
               <FaSearch className="mx-auto text-4xl mb-2 opacity-50" />
-              <p>Search for users to start a conversation</p>
+              <p className="text-gray-300">Search for users to start a conversation</p>
             </div>
           )}
         </div>

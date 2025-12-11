@@ -1,7 +1,8 @@
 "use client";
-import React from 'react';
-import Image from 'next/image';
-import { FaCircle, FaEllipsisV } from 'react-icons/fa';
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
+import { FaCircle, FaEllipsisV, FaArrowLeft } from "react-icons/fa";
+import { useChat } from "./ChatProvider";
 
 interface Conversation {
   id: number;
@@ -22,12 +23,38 @@ interface ChatHeaderProps {
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({ conversation }) => {
   const { otherUser } = conversation;
+  const { setCurrentConversation } = useChat();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  const handleBack = () => {
+    setCurrentConversation(null);
+  };
 
   return (
-    <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-      <div className="flex items-center space-x-3">
+    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700 bg-gray-900 flex-shrink-0">
+      <div className="flex items-center space-x-3 flex-1 min-w-0">
+        {/* Back button for mobile */}
+        {isMobile && (
+          <button
+            onClick={handleBack}
+            className="p-2 -ml-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-full transition-colors flex-shrink-0"
+            aria-label="Back to conversations"
+          >
+            <FaArrowLeft className="text-lg" />
+          </button>
+        )}
+
         {/* Profile Picture */}
-        <div className="relative">
+        <div className="relative flex-shrink-0">
           <Image
             src={otherUser.profilePicture}
             alt={otherUser.name}
@@ -36,19 +63,21 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({ conversation }) => {
             className="rounded-full object-cover"
           />
           {/* Online indicator */}
-          <FaCircle className="absolute -bottom-1 -right-1 text-green-500 text-xs" />
+          <FaCircle className="absolute -bottom-0.5 -right-0.5 text-green-500 text-xs bg-gray-900 rounded-full" />
         </div>
 
         {/* User Info */}
-        <div>
-          <h3 className="font-medium text-main">{otherUser.name}</h3>
-          <p className="text-sm text-gray-500">@{otherUser.username}</p>
+        <div className="min-w-0 flex-1">
+          <h3 className="font-medium text-white truncate text-[16px]">{otherUser.name}</h3>
+          <p className="text-xs text-gray-400 truncate">
+            online
+          </p>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center space-x-2">
-        <button className="p-2 text-gray-500 hover:text-accent transition-colors">
+      <div className="flex items-center space-x-1 flex-shrink-0">
+        <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-full transition-colors">
           <FaEllipsisV />
         </button>
       </div>

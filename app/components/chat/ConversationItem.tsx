@@ -1,8 +1,8 @@
 "use client";
-import React from 'react';
-import Image from 'next/image';
-import { formatDistanceToNow } from 'date-fns';
-import { FaCircle } from 'react-icons/fa';
+import React from "react";
+import Image from "next/image";
+import { formatDistanceToNow } from "date-fns";
+import { FaCircle } from "react-icons/fa";
 
 interface Conversation {
   id: number;
@@ -41,52 +41,56 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
 
   return (
     <div
-      className={`p-4 cursor-pointer transition-colors hover:bg-accent/5 ${
-        isActive ? 'bg-accent/10 border-r-2 border-accent' : ''
+      className={`px-4 py-3 cursor-pointer transition-colors ${
+        isActive
+          ? "bg-gray-800"
+          : "hover:bg-gray-800/50 active:bg-gray-800"
       }`}
       onClick={onClick}
     >
       <div className="flex items-center space-x-3">
         {/* Profile Picture */}
-        <div className="relative">
+        <div className="relative flex-shrink-0">
           <Image
             src={otherUser.profilePicture}
             alt={otherUser.name}
-            width={48}
-            height={48}
+            width={50}
+            height={50}
             className="rounded-full object-cover"
           />
           {/* Online indicator */}
-          <FaCircle className="absolute -bottom-1 -right-1 text-green-500 text-xs" />
+          <FaCircle className="absolute -bottom-0.5 -right-0.5 text-green-500 text-xs bg-gray-900 rounded-full" />
         </div>
 
         {/* Conversation Info */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between">
-            <h3 className="font-medium text-main truncate">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="font-medium text-white truncate text-[15px]">
               {otherUser.name}
             </h3>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
               {formatDistanceToNow(new Date(updatedAt), { addSuffix: true })}
             </span>
           </div>
 
-          <div className="flex items-center justify-between mt-1">
-            <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+          <div className="flex items-center justify-between">
+            <p className={`text-sm truncate ${
+              unreadCount > 0 ? "font-semibold text-white" : "text-gray-400"
+            }`}>
               {lastMessage ? (
                 <>
-                  <span className="font-medium">
-                    {lastMessage.sender.id === otherUser.id ? '' : 'You: '}
+                  <span className={lastMessage.sender.id === otherUser.id ? "" : "font-normal"}>
+                    {lastMessage.sender.id === otherUser.id ? "" : "You: "}
                   </span>
                   {lastMessage.content}
                 </>
               ) : (
-                'No messages yet'
+                <span className="text-gray-500 italic">No messages yet</span>
               )}
             </p>
             {unreadCount > 0 && (
-              <span className="ml-2 bg-accent text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
-                {unreadCount > 99 ? '99+' : unreadCount}
+              <span className="ml-2 bg-accent text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center flex-shrink-0">
+                {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             )}
           </div>

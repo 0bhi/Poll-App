@@ -37,6 +37,7 @@ const Post = ({ data }: { data: PostType }) => {
   const [upvoted, setUpvoted] = useState(false);
   const [downvoted, setDownvoted] = useState(false);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
 
   const { id, text, options = [], user_id } = data; // fallback to []
 
@@ -216,6 +217,28 @@ const Post = ({ data }: { data: PostType }) => {
     // Optionally, fetch new upvote/downvote counts here and update state
   };
 
+  const handleShare = async (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (isSharing) return;
+    setIsSharing(true);
+    try {
+      const url =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/post/${id}`
+          : `/post/${id}`;
+      if (navigator?.share) {
+        await navigator.share({ url });
+      } else if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      }
+    } catch (error) {
+      console.error("Failed to share post", error);
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   // Helper to calculate poll percentages
   function getPercentages() {
     const total = votes.reduce((a, b) => a + b, 0);
@@ -382,7 +405,7 @@ const Post = ({ data }: { data: PostType }) => {
             ) : (
               <BiUpvote size={20} />
             )}
-            <span className="text-xs font-medium">Upvote</span>
+            <span className="text-xs font-medium hidden sm:inline">Upvote</span>
           </button>
           <button
             onClick={(event) => {
@@ -405,7 +428,7 @@ const Post = ({ data }: { data: PostType }) => {
             ) : (
               <BiDownvote size={20} />
             )}
-            <span className="text-xs font-medium">Downvote</span>
+            <span className="text-xs font-medium hidden sm:inline">Downvote</span>
           </button>
         </div>
         <div className="flex items-center gap-1">
@@ -418,7 +441,7 @@ const Post = ({ data }: { data: PostType }) => {
             aria-label="Comment"
           >
             <FaRegComment size={16} />
-            <span className="text-xs font-medium">Comment</span>
+            <span className="text-xs font-medium hidden sm:inline">Comment</span>
           </button>
           <button
             onClick={(event) => {
@@ -428,15 +451,15 @@ const Post = ({ data }: { data: PostType }) => {
             aria-label="Bookmark"
           >
             <FaRegBookmark size={16} />
+            <span className="text-xs font-medium hidden sm:inline">Bookmark</span>
           </button>
           <button
-            onClick={(event) => {
-              event.stopPropagation();
-            }}
+            onClick={handleShare}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95"
             aria-label="Share"
           >
             <FaShareAlt size={16} />
+            <span className="text-xs font-medium hidden sm:inline">Share</span>
           </button>
         </div>
       </div>

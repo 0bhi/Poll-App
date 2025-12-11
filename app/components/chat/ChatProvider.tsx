@@ -17,6 +17,7 @@ interface ChatContextType {
   stopTyping: () => void;
   isTyping: boolean;
   otherUserTyping: boolean;
+  refreshConversations: () => Promise<void>;
 }
 
 interface Conversation {
@@ -170,9 +171,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
         `/api/conversations?user_id=${session?.user?.id}`
       );
       const data = await response.json();
-      setConversations(data.conversations || []);
+      // API returns { data: conversations[] }, so access data.data
+      setConversations(data.data || []);
     } catch (error) {
       console.error("Error fetching conversations:", error);
+      setConversations([]);
     }
   };
 
@@ -182,9 +185,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
         `/api/messages?conversation_id=${conversationId}`
       );
       const data = await response.json();
-      setMessages(data.messages || []);
+      // API returns { data: messages[] }, so access data.data
+      setMessages(data.data || []);
     } catch (error) {
       console.error("Error fetching messages:", error);
+      setMessages([]);
     }
   };
 
@@ -258,6 +263,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
     stopTyping,
     isTyping,
     otherUserTyping,
+    refreshConversations: fetchConversations,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

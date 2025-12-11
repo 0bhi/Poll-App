@@ -136,6 +136,24 @@ export async function POST(req: NextRequest) {
           },
         ],
       },
+      include: {
+        participant1: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            profilePicture: true,
+          },
+        },
+        participant2: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            profilePicture: true,
+          },
+        },
+      },
     });
 
     if (existingConversation) {

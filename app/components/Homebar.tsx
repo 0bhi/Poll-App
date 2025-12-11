@@ -25,7 +25,7 @@ const homeBarContents = {
   messages: {
     icon: "FaEnvelope",
     label: "Messages",
-    href: "/chat",
+    href: "/messages",
   },
   settings: {
     icon: "FaCog",
@@ -45,9 +45,9 @@ const Homebar = () => {
 
   return (
     <>
-      <div className="h-screen flex flex-col justify-between bg-gradient-to-b from-gray-900 to-gray-800 text-white">
+      <div className="relative h-screen flex flex-col justify-between bg-gradient-to-b from-gray-900 to-gray-800 text-white">
         {session.status === "authenticated" ? (
-          <div className="p-4 md:p-6 flex flex-col h-full">
+          <div className="p-4 md:p-6 flex flex-col h-full overflow-y-auto pb-24">
             <div
               onClick={() => setIsProfileModalOpen(true)}
               className="cursor-pointer group"
@@ -150,15 +150,17 @@ const Homebar = () => {
               })}
             </div>
             <div className="flex-1" />
-            {/* Floating Action Button for mobile */}
-            <button
-              className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40 bg-accent text-white rounded-full shadow-lg p-3 md:p-4 flex items-center justify-center md:hidden hover:bg-accent-hover transition-all"
-              style={{ boxShadow: "0 4px 16px 0 rgba(37,99,235,0.15)" }}
-              onClick={() => router.push("/")}
-              aria-label="Create New Poll"
-            >
-              <Icons.FaPlus className="text-xl md:text-2xl" />
-            </button>
+            {/* Floating action for mobile: sign out */}
+            <div className="md:hidden mt-6 sticky bottom-4 flex justify-end z-10">
+              <button
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-white shadow-lg transition-all hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-400/60"
+                onClick={() => signOut()}
+                aria-label="Sign out"
+              >
+                <Icons.FaSignOutAlt className="text-lg" />
+                <span className="text-sm font-semibold">Sign out</span>
+              </button>
+            </div>
           </div>
         ) : (
           <div className="p-4">

@@ -2,7 +2,6 @@
 import { useSession } from "next-auth/react";
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { FaRegComment, FaVoteYea, FaUserPlus, FaArrowUp } from "react-icons/fa";
 import Image from "next/image";
 
 interface NotificationType {
@@ -20,27 +19,6 @@ interface UserType {
   name: string;
   username: string;
   profilePicture: string;
-}
-
-function getIcon(type: string) {
-  switch (type) {
-    case "VOTE":
-      return <FaVoteYea className="text-blue-500 text-base md:text-lg mr-2" />;
-    case "COMMENT":
-      return (
-        <FaRegComment className="text-green-500 text-base md:text-lg mr-2" />
-      );
-    case "UPVOTE":
-      return (
-        <FaArrowUp className="text-orange-500 text-base md:text-lg mr-2" />
-      );
-    case "FOLLOW":
-      return (
-        <FaUserPlus className="text-purple-500 text-base md:text-lg mr-2" />
-      );
-    default:
-      return null;
-  }
 }
 
 function timeAgo(dateString: string) {
@@ -72,37 +50,38 @@ function NotificationItem({ notif }: { notif: NotificationType }) {
     }
   }
   return (
-    <div className="card flex items-center transition cursor-pointer p-2 md:p-3 mb-1 md:mb-2 rounded-md shadow-sm bg-gray-800 text-white hover:bg-gray-700 border border-gray-700">
-      <div className="flex -space-x-1 mr-2">
-        {actors.slice(0, 3).map((actor) => (
-          <Image
-            key={actor.id}
-            src={actor.profilePicture}
-            alt={actor.name}
-            width={24}
-            height={24}
-            className="avatar border border-white w-6 h-6 md:w-7 md:h-7"
-          />
-        ))}
-        {actors.length === 0 && (
-          <div className="avatar bg-gray-200 w-6 h-6 md:w-7 md:h-7" />
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <span className="heading-3 text-xs md:text-sm block truncate">
-          {displayText}
-        </span>
-        {notif.post_text && (
-          <span className="text-gray-300 body-sm text-xs block truncate">
-            : "{notif.post_text}"
-          </span>
-        )}
-        <div className="text-xs text-gray-400 body-sm">
-          {timeAgo(notif.createdAt)}
+    <div className="group transition-all duration-300 ease-in-out cursor-pointer rounded-xl shadow-sm bg-card text-main hover:shadow-xl hover:-translate-y-1 w-full border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="flex items-center gap-4 px-4 py-3">
+        <div className="relative flex-shrink-0">
+          <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-gray-200 dark:ring-gray-700 transition-all duration-300 group-hover:ring-blue-400 dark:group-hover:ring-blue-500">
+            {actors.length > 0 ? (
+              <Image
+                src={actors[0].profilePicture}
+                alt={actors[0].name}
+                className="object-cover w-full h-full"
+                width={40}
+                height={40}
+              />
+            ) : (
+              <div className="w-full h-full bg-gray-200 dark:bg-gray-700" />
+            )}
+          </div>
         </div>
-      </div>
-      <div className="ml-2 icon accent flex-shrink-0">
-        {getIcon(notif.type)}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-sm md:text-base text-gray-900 dark:text-gray-100 truncate">
+              {displayText}
+            </span>
+          </div>
+          {notif.post_text && (
+            <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+              “{notif.post_text}”
+            </p>
+          )}
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {timeAgo(notif.createdAt)}
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -111,13 +90,15 @@ function NotificationItem({ notif }: { notif: NotificationType }) {
 // Skeleton loader for notifications
 export function NotificationSkeleton() {
   return (
-    <div className="card animate-pulse flex items-center p-2 md:p-3 mb-2 gap-3">
-      <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-200 dark:bg-gray-700" />
-      <div className="flex-1 space-y-2">
-        <div className="h-3 md:h-4 w-1/2 bg-gray-200 dark:bg-gray-700 rounded" />
-        <div className="h-2 md:h-3 w-1/3 bg-gray-100 dark:bg-gray-800 rounded" />
+    <div className="w-full animate-pulse p-3 md:p-4 mb-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-card overflow-hidden">
+      <div className="flex items-center gap-3 md:gap-4">
+        <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-gray-200 dark:bg-gray-700" />
+        <div className="flex-1 space-y-2">
+          <div className="h-3 md:h-4 w-1/2 bg-gray-200 dark:bg-gray-700 rounded" />
+          <div className="h-2 md:h-3 w-1/3 bg-gray-100 dark:bg-gray-800 rounded" />
+        </div>
+        <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-gray-200 dark:bg-gray-700" />
       </div>
-      <div className="ml-2 w-5 h-5 md:w-6 md:h-6 rounded-full bg-gray-200 dark:bg-gray-700" />
     </div>
   );
 }
@@ -133,14 +114,12 @@ export default function Notificationsbar() {
         setLoading(false);
         return;
       }
-      
+
       setLoading(true);
       try {
         // No need to pass user_id - API uses authenticated user from session
         const res = await axios.get("/api/notifications");
-        setNotifs(
-          Array.isArray(res.data.data) ? res.data.data : []
-        );
+        setNotifs(Array.isArray(res.data.data) ? res.data.data : []);
       } catch (error) {
         setNotifs([]);
       } finally {
@@ -151,11 +130,11 @@ export default function Notificationsbar() {
   }, [session?.data?.user?.id]);
 
   return (
-    <div className="h-screen flex flex-col">
-      <div className="text-white text-center font-semibold text-lg md:text-2xl py-2 md:py-4 px-2">
+    <div className="h-screen flex flex-col bg-gradient-to-b from-gray-900 to-gray-800">
+      <div className="text-gray-100 text-center font-semibold text-lg md:text-2xl py-2 md:py-4 px-2">
         Notifications
       </div>
-      <div className="flex-1 overflow-y-auto p-2 md:p-4">
+      <div className="flex-1 overflow-y-auto p-2 md:p-4 space-y-2">
         {loading && (!notifs || notifs.length === 0) ? (
           <>
             <NotificationSkeleton />

@@ -4,7 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { errorResponse } from "./apiResponse";
 
 // Defaults to enabled; set RATE_LIMIT_ENABLED=false for builds/tests or to bypass
-const rateLimitEnabled = process.env.RATE_LIMIT_ENABLED !== "false";
+const rateLimitEnabled =
+  process.env.RATE_LIMIT_ENABLED !== "false" &&
+  process.env.NODE_ENV === "production";
 const hasRedisConfig =
   Boolean(process.env.UPSTASH_REDIS_REST_URL) &&
   Boolean(process.env.UPSTASH_REDIS_REST_TOKEN);

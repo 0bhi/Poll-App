@@ -4,7 +4,7 @@ import Homebar from "./Homebar";
 import Notificationsbar from "./Notificationsbar";
 import { usePathname } from "next/navigation";
 import { useTheme } from "./providers";
-import { FaSun, FaMoon, FaBars, FaTimes } from "react-icons/fa";
+import { FaSun, FaMoon, FaBars, FaTimes, FaBell } from "react-icons/fa";
 import { useState, useEffect } from "react";
 
 export default function LayoutContent({
@@ -17,16 +17,26 @@ export default function LayoutContent({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
+  const toggleNotifications = () => {
+    if (isNotificationsOpen) {
+      setIsNotificationsOpen(false);
+      return;
+    }
+    setIsNotificationsOpen(true);
+    setIsMobileMenuOpen(false);
+  };
+
   // Close mobile menus when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
     setIsNotificationsOpen(false);
   }, [pathname]);
 
-  // Don't show sidebar for signup page or chat page
-  if (pathname === "/signup" || pathname === "/chat") {
+  // Don't show sidebar for signup page or messages page
+  // Messages page handles its own full-screen layout on mobile
+  if (pathname === "/signup" || pathname === "/messages") {
     return (
-      <div className="w-full min-h-screen bg-gradient-to-b from-gray-900 to-gray-800">
+      <div className="w-full h-screen bg-gradient-to-b from-gray-900 to-gray-800 overflow-hidden">
         {children}
       </div>
     );
@@ -48,13 +58,16 @@ export default function LayoutContent({
           <h1 className="text-white font-bold text-lg">Poll App</h1>
 
           <button
-            onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-            className="text-white p-2 rounded-lg hover:bg-gray-700 transition-colors relative"
+            onClick={toggleNotifications}
+            className={`text-white p-2 rounded-lg transition-colors relative ${
+              isNotificationsOpen
+                ? "bg-gray-700"
+                : "bg-transparent hover:bg-white/10"
+            }`}
             aria-label="Toggle notifications"
+            aria-pressed={isNotificationsOpen}
           >
-            <FaSun size={20} />
-            {/* Notification badge */}
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+            <FaBell size={20} />
           </button>
         </div>
       </div>
@@ -100,7 +113,9 @@ export default function LayoutContent({
 
       {/* Main Content */}
       <div className="flex-1 md:w-1/2 bg-gradient-to-b from-gray-900 to-gray-800 overflow-hidden">
-        <div className="h-full pt-16 md:pt-0">{children}</div>
+        <div className={`h-full ${pathname === "/messages" ? "pt-0" : "pt-16 md:pt-0"}`}>
+          {children}
+        </div>
       </div>
 
       {/* Desktop Notifications */}

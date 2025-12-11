@@ -36,62 +36,47 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     }
   }, [message.id, message.isRead, isOwnMessage, markMessageAsRead]);
 
+  const time = new Date(message.createdAt).toLocaleTimeString('en-US', { 
+    hour: 'numeric', 
+    minute: '2-digit',
+    hour12: true 
+  });
+
   return (
-    <div className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}>
+    <div className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} mb-1`}>
       <div
-        className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${
+        className={`flex items-end space-x-2 max-w-[65%] md:max-w-[50%] ${
           isOwnMessage ? "flex-row-reverse space-x-reverse" : ""
         }`}
       >
-        {/* Profile Picture (only for other user's messages) */}
-        {!isOwnMessage && (
-          <Image
-            src={message.sender.profilePicture}
-            alt={message.sender.name}
-            width={32}
-            height={32}
-            className="rounded-full object-cover flex-shrink-0"
-          />
-        )}
-
-        {/* Message Content */}
+        {/* Message Bubble */}
         <div
-          className={`flex flex-col ${
-            isOwnMessage ? "items-end" : "items-start"
+          className={`px-3 py-2 rounded-lg shadow-sm max-w-full break-words ${
+            isOwnMessage
+              ? "bg-accent text-white rounded-tr-none"
+              : "bg-gray-800 text-gray-100 rounded-tl-none"
           }`}
         >
-          {/* Message Bubble */}
-          <div
-            className={`px-4 py-2 rounded-lg max-w-full break-words ${
-              isOwnMessage
-                ? "bg-accent text-white rounded-br-md"
-                : "bg-gray-100 dark:bg-gray-700 text-main rounded-bl-md"
-            }`}
-          >
-            <p className="text-sm">{message.content}</p>
-          </div>
-
-          {/* Message Info */}
-          <div
-            className={`flex items-center space-x-1 mt-1 text-xs text-gray-500 ${
-              isOwnMessage ? "flex-row-reverse space-x-reverse" : ""
-            }`}
-          >
-            <span>
-              {formatDistanceToNow(new Date(message.createdAt), {
-                addSuffix: true,
-              })}
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+          
+          {/* Message time and read receipt */}
+          <div className={`flex items-center justify-end mt-1 space-x-1 ${
+            isOwnMessage ? "flex-row-reverse" : ""
+          }`}>
+            <span className={`text-[11px] mt-0.5 ${
+              isOwnMessage ? "text-white/70" : "text-gray-400"
+            }`}>
+              {time}
             </span>
-
             {/* Read receipt for own messages */}
             {isOwnMessage && (
-              <div className="flex items-center">
+              <span className="ml-1">
                 {message.isRead ? (
-                  <FaCheckDouble className="text-blue-500" />
+                  <FaCheckDouble className="text-blue-400 text-[10px]" />
                 ) : (
-                  <FaCheck className="text-gray-400" />
+                  <FaCheck className="text-white/50 text-[10px]" />
                 )}
-              </div>
+              </span>
             )}
           </div>
         </div>
