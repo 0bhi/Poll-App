@@ -1,8 +1,17 @@
 const { createServer } = require("http");
 const { Server } = require("socket.io");
+const { PrismaClient } = require("@prisma/client");
 
-// Import the shared Prisma singleton to prevent connection pool exhaustion
-const prisma = require("./app/lib/db").default;
+// Create Prisma client singleton to prevent connection pool exhaustion
+const prismaClientSingleton = () => {
+  return new PrismaClient();
+};
+
+const prisma = global.prisma ?? prismaClientSingleton();
+
+if (process.env.NODE_ENV !== "production") {
+  global.prisma = prisma;
+}
 
 const port = process.env.SOCKET_PORT || 3001;
 const frontendUrl =
@@ -168,17 +177,6 @@ io.on("connection", (socket) => {
       socket.broadcast.emit("user_offline", socket.data.userId);
     }
   });
-});
-
-// Health check endpoint
-server.on("request", (req, res) => {
-  if (req.url === "/health") {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ status: "ok", service: "socket-server" }));
-    return;
-  }
-  res.writeHead(404);
-  res.end("Not Found");
 });
 
 // Start the server

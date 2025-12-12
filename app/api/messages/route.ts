@@ -162,6 +162,22 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      // Broadcast message via socket server
+      try {
+        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
+        await fetch(`${socketUrl}/broadcast-message`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message,
+            conversationId: parsedConversationId,
+          }),
+        });
+      } catch (error) {
+        // Log error but don't fail the request - message is already saved
+        console.error("Error broadcasting message via socket:", error);
+      }
+
       return successResponse(message);
     } catch (error) {
       return handleError(error, req);

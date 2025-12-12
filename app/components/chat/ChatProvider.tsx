@@ -77,6 +77,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
   // Initialize socket connection
   useEffect(() => {
     if (session?.user?.id) {
+      const currentUserId = parseInt(session.user.id);
       // Connect to separate Socket.IO server
       const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
       const newSocket = io(socketUrl);
@@ -84,13 +85,19 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
       newSocket.on("connect", () => {
         console.log("Connected to socket server");
         newSocket.emit("authenticate", {
-          userId: parseInt(session.user.id),
+          userId: currentUserId,
           username: session.user.username || (session.user as any).name || "",
         });
       });
 
       newSocket.on("message", (message: Message) => {
-        setMessages((prev) => [...prev, message]);
+        setMessages((prev) => {
+          // Avoid duplicates when the sender also receives the broadcast
+          if (prev.some((msg) => msg.id === message.id)) {
+            return prev;
+          }
+          return [...prev, message];
+        });
 
         // Update conversation list with new message
         setConversations((prev) =>
@@ -99,7 +106,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
               ? {
                   ...conv,
                   lastMessage: message,
-                  unreadCount: conv.unreadCount + 1,
+                  // Only increment unread count if message is not from current user
+                  unreadCount: 
+                    message.sender.id !== currentUserId
+                      ? conv.unreadCount + 1
+                      : conv.unreadCount,
                 }
               : conv
           )
@@ -161,6 +172,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     if (socket && currentConversation) {
       socket.emit("join_conversation", currentConversation.id);
+      setMessages([]); // clear stale messages while loading new thread
       fetchMessages(currentConversation.id);
     }
   }, [socket, currentConversation]);
@@ -193,28 +205,20 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const sendMessage = async (content: string, messageType: string = "TEXT") => {
+  const sendMessage = (content: string, messageType: string = "TEXT") => {
     if (!socket || !currentConversation || !session?.user?.id) return;
 
-    try {
-      const response = await fetch("/api/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId: currentConversation.id,
-          senderId: session.user.id,
-          content,
-          messageType,
-        }),
-      });
+    const trimmed = content.trim();
+    if (!trimmed) return;
 
-      if (response.ok) {
-        // Message will be added via socket event
-        stopTyping();
-      }
-    } catch (error) {
-      console.error("Error sending message:", error);
-    }
+    socket.emit("send_message", {
+      conversationId: currentConversation.id,
+      content: trimmed,
+      messageType,
+    });
+
+    // Stop typing indicator as soon as we send
+    stopTyping();
   };
 
   const markMessageAsRead = async (messageId: number) => {

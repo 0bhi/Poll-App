@@ -15,7 +15,7 @@ const ChatSidebar: React.FC = () => {
     <>
       <div className="w-full h-full bg-gradient-to-b from-gray-900 to-gray-800 flex flex-col">
         {/* Header */}
-        <div className="px-4 py-3 bg-gray-900 border-b border-gray-700 flex-shrink-0">
+        <div className="px-4 py-4 bg-gray-900 border-b border-gray-700 flex-shrink-0">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-white">
               Messages
