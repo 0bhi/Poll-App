@@ -254,7 +254,15 @@ const Post = ({ data }: { data: PostType }) => {
       {/* Header: Avatar + User Info */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3">
         <div className="relative flex-shrink-0">
-          <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-gray-200 dark:ring-gray-700 transition-all duration-300 group-hover:ring-blue-400 dark:group-hover:ring-blue-500">
+          <button
+            className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-gray-200 dark:ring-gray-700 transition-all duration-300 group-hover:ring-blue-400 dark:group-hover:ring-blue-500"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (username) {
+                router.push(`/${username}`);
+              }
+            }}
+          >
             <Image
               src={profilePicUrl}
               alt={`${name}'s profile`}
@@ -262,13 +270,21 @@ const Post = ({ data }: { data: PostType }) => {
               width={40}
               height={40}
             />
-          </div>
+          </button>
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-sm md:text-base text-gray-900 dark:text-gray-100 truncate">
+            <button
+              className="font-semibold text-left text-sm md:text-base text-gray-900 dark:text-gray-100 truncate hover:underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (username) {
+                  router.push(`/${username}`);
+                }
+              }}
+            >
               {name || "Anonymous"}
-            </span>
+            </button>
             {createdAt && (
               <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
                 ·
@@ -280,9 +296,17 @@ const Post = ({ data }: { data: PostType }) => {
               </span>
             )}
           </div>
-          <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+          <button
+            className="text-xs text-gray-500 dark:text-gray-400 truncate text-left hover:underline"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (username) {
+                router.push(`/${username}`);
+              }
+            }}
+          >
             @{username || "user"}
-          </span>
+          </button>
         </div>
       </div>
 

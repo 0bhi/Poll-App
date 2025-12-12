@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import Prisma from "@/app/lib/db";
-import { getUserQuerySchema } from "@/app/lib/schemas";
-import { validateQuery } from "@/app/lib/validation";
+import { getUserQuerySchema, updateUserSchema } from "@/app/lib/schemas";
+import { validateBody, validateQuery } from "@/app/lib/validation";
 import { handleError } from "@/app/lib/errorHandler";
 import { NotFoundError } from "@/app/lib/errors";
 import { withRateLimit } from "@/app/lib/rateLimit";
 import { successResponse } from "@/app/lib/apiResponse";
+import { withAuth } from "@/app/lib/authMiddleware";
 
 export async function GET(req: NextRequest) {
   // Apply rate limiting
@@ -34,4 +35,41 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     return handleError(error, req);
   }
+}
+
+export async function PUT(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req);
+  if (rateLimitResponse) return rateLimitResponse;
+
+  return withAuth(async (req: NextRequest, userId: number) => {
+    try {
+      const validation = await validateBody(req, updateUserSchema);
+      if (!validation.success) {
+        return validation.error;
+      }
+
+      const data = validation.data;
+      if (!Object.keys(data).length) {
+        return successResponse(await Prisma.user.findUnique({ where: { id: userId } }));
+      }
+
+      const updated = await Prisma.user.update({
+        where: { id: userId },
+        data,
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          bio: true,
+          profilePicture: true,
+          followersCount: true,
+          followingCount: true,
+        },
+      });
+
+      return successResponse(updated);
+    } catch (error) {
+      return handleError(error, req);
+    }
+  })(req);
 }

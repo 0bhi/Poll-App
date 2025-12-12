@@ -17,11 +17,6 @@ const homeBarContents = {
     label: "Search",
     href: "/search",
   },
-  notifications: {
-    icon: "FaBell",
-    label: "Notifications",
-    href: "/notifications",
-  },
   messages: {
     icon: "FaEnvelope",
     label: "Messages",
@@ -35,10 +30,6 @@ const homeBarContents = {
 };
 
 const Homebar = () => {
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [followers, setFollowers] = useState(0);
-  const [following, setFollowing] = useState(0);
-  const [bio, setBio] = useState("");
   const session: any = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -49,7 +40,9 @@ const Homebar = () => {
         {session.status === "authenticated" ? (
           <div className="p-4 md:p-6 flex flex-col h-full overflow-y-auto pb-24">
             <div
-              onClick={() => setIsProfileModalOpen(true)}
+              onClick={() =>
+                router.push(`/${session?.data?.user?.username ?? ""}`)
+              }
               className="cursor-pointer group"
             >
               <div className="avatar overflow-hidden border-2 border-accent mx-auto shadow-lg bg-accent/20 hover:shadow-xl transition-all duration-300 group-hover:scale-105">
@@ -68,56 +61,6 @@ const Homebar = () => {
                 {"@" + session.data.user?.username}
               </div>
             </div>
-            {/* Profile Modal */}
-            {isProfileModalOpen && (
-              <div
-                className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
-                onClick={() => setIsProfileModalOpen(false)}
-              >
-                <div
-                  className="relative w-full max-w-lg h-auto bg-card p-4 md:p-6 rounded-lg shadow-xl border"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="relative">
-                    <div className="w-full h-20 bg-accent/20 rounded-md flex items-center justify-center">
-                      <span className="text-accent font-medium text-base">
-                        Profile Cover
-                      </span>
-                    </div>
-                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                      <img
-                        src={session.data.user?.image}
-                        alt="Profile"
-                        className="avatar border-2 border-white shadow-sm object-cover"
-                      />
-                    </div>
-                  </div>
-                  <button
-                    className="absolute top-2 right-2 md:top-6 md:right-6 m-2 md:m-6"
-                    onClick={() => setIsProfileModalOpen(false)}
-                  >
-                    <Icons.FaTimes className="text-xl md:text-2xl text-red-500" />
-                  </button>
-                  <div className="mt-16 p-4 text-center">
-                    <div className="heading-2 text-base md:text-lg">
-                      {session?.data.user.name}
-                    </div>
-                    <div className="text-gray-500 body-sm text-xs md:text-sm">
-                      {"@" + session?.data.user.username}
-                    </div>
-                    <div className="mt-2 body-lg text-sm md:text-base">
-                      {bio}
-                    </div>
-                    <div className="mt-2 flex justify-center space-x-4 text-xs md:text-sm">
-                      <div className="font-bold">{followers}</div>
-                      <div>Followers</div>
-                      <div className="font-bold">{following}</div>
-                      <div>Following</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
             {/* Navigation */}
             <div className="flex flex-col gap-2 mt-6 md:mt-8">
               {Object.values(homeBarContents).map((item) => {

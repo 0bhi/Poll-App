@@ -164,12 +164,41 @@ export const getUserQuerySchema = z.object({
   user_id: positiveIntString,
 });
 
+export const getUserProfileQuerySchema = z.object({
+  username: z
+    .string()
+    .min(1, "Username is required")
+    .max(50, "Username must be less than 50 characters")
+    .regex(
+      /^[a-zA-Z0-9_]+$/,
+      "Username can only contain letters, numbers, and underscores"
+    ),
+});
+
 export const searchUsersQuerySchema = z.object({
   q: z
     .string()
     .min(1, "Query is required")
     .max(100, "Query must be less than 100 characters"),
   current_user_id: positiveIntString,
+});
+
+export const followUserSchema = z.object({
+  target_user_id: z.union([positiveIntString, positiveInt]),
+  action: z.enum(["FOLLOW", "UNFOLLOW"]).optional().default("FOLLOW"),
+});
+
+export const updateUserSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .max(100, "Name must be less than 100 characters")
+    .optional(),
+  bio: z
+    .string()
+    .max(160, "Bio must be less than 160 characters")
+    .optional(),
+  profilePicture: z.string().url("Invalid profile picture URL").optional(),
 });
 
 // Notifications schema
