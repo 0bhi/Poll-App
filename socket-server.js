@@ -1,6 +1,7 @@
 const { createServer } = require("http");
 const { Server } = require("socket.io");
 const { PrismaClient } = require("@prisma/client");
+const { jwtVerify } = require("jose");
 
 // Create Prisma client singleton to prevent connection pool exhaustion
 const prismaClientSingleton = () => {
@@ -19,6 +20,13 @@ const frontendUrl =
   process.env.NEXTAUTH_URL ||
   "http://localhost:3000";
 
+// Ensure NEXTAUTH_SECRET is set for JWT verification
+if (!process.env.NEXTAUTH_SECRET) {
+  console.error("ERROR: NEXTAUTH_SECRET environment variable is not set!");
+  console.error("Socket server authentication will not work without this secret.");
+  process.exit(1);
+}
+
 // Create HTTP server for Socket.IO
 const server = createServer();
 
@@ -35,18 +43,105 @@ const io = new Server(server, {
 // Store online users
 const onlineUsers = new Map();
 
-// Socket.IO connection handling
+/**
+ * Verify NextAuth session token from cookie
+ * Returns userId and username if valid, null otherwise
+ */
+async function verifySessionToken(cookieHeader) {
+  if (!cookieHeader) {
+    return null;
+  }
+
+  try {
+    // Parse cookies from header
+    // Handle cookie values that may contain '=' characters
+    const cookies = {};
+    cookieHeader.split(";").forEach((cookie) => {
+      const trimmed = cookie.trim();
+      const equalIndex = trimmed.indexOf("=");
+      if (equalIndex > 0) {
+        const name = trimmed.substring(0, equalIndex);
+        const value = trimmed.substring(equalIndex + 1);
+        if (name && value) {
+          cookies[name] = decodeURIComponent(value);
+        }
+      }
+    });
+
+    // NextAuth cookie names (development and production)
+    const sessionToken =
+      cookies["__Secure-next-auth.session-token"] ||
+      cookies["next-auth.session-token"];
+
+    if (!sessionToken) {
+      return null;
+    }
+
+    // Verify JWT token using NEXTAUTH_SECRET
+    const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET);
+    const { payload } = await jwtVerify(sessionToken, secret);
+
+    // Extract userId and username from token
+    if (!payload.id) {
+      return null;
+    }
+
+    const userId = typeof payload.id === "string" ? parseInt(payload.id, 10) : payload.id;
+    if (!Number.isFinite(userId)) {
+      return null;
+    }
+
+    return {
+      userId,
+      username: payload.username || payload.name || "",
+    };
+  } catch (error) {
+    console.error("Error verifying session token:", error);
+    return null;
+  }
+}
+
+// Socket.IO connection handling with authentication middleware
+io.use(async (socket, next) => {
+  try {
+    // Extract cookies from handshake
+    const cookieHeader = socket.handshake.headers.cookie;
+
+    // Verify session token
+    const sessionData = await verifySessionToken(cookieHeader);
+
+    if (!sessionData) {
+      console.log("Unauthenticated connection attempt:", socket.id);
+      return next(new Error("Authentication required"));
+    }
+
+    // Store authenticated user data in socket
+    socket.data.userId = sessionData.userId;
+    socket.data.username = sessionData.username;
+    onlineUsers.set(sessionData.userId, socket.id);
+
+    console.log(`Authenticated user ${sessionData.userId} connected:`, socket.id);
+    next();
+  } catch (error) {
+    console.error("Authentication error:", error);
+    next(new Error("Authentication failed"));
+  }
+});
+
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // Handle user authentication
-  socket.on("authenticate", async (data) => {
-    socket.data.userId = data.userId;
-    socket.data.username = data.username;
-    onlineUsers.set(data.userId, socket.id);
+  // User is already authenticated via middleware
+  // Broadcast user online status
+  socket.broadcast.emit("user_online", socket.data.userId);
 
-    // Broadcast user online status
-    socket.broadcast.emit("user_online", data.userId);
+  // Remove the authenticate event handler - authentication is now done via middleware
+  // Keep for backward compatibility but ignore client-provided data
+  socket.on("authenticate", async (data) => {
+    console.warn(
+      `Client ${socket.id} attempted to authenticate, but authentication is handled server-side. Ignoring client-provided userId.`
+    );
+    // User is already authenticated via middleware, so we can safely ignore this
   });
 
   // Join conversation room

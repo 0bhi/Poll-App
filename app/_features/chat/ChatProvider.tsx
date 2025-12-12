@@ -80,15 +80,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
     if (session?.user?.id) {
       const currentUserId = parseInt(session.user.id);
       // Connect to separate Socket.IO server
+      // Authentication is handled server-side via session cookies
       const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
-      const newSocket = io(socketUrl);
+      const newSocket = io(socketUrl, {
+        withCredentials: true, // Ensure cookies are sent for authentication
+      });
 
       newSocket.on("connect", () => {
         logger.info("Connected to socket server");
-        newSocket.emit("authenticate", {
-          userId: currentUserId,
-          username: session.user.username || (session.user as { name?: string }).name || "",
-        });
+        // Authentication is now handled automatically via session cookies
+        // No need to emit authenticate event
       });
 
       newSocket.on("message", (message: Message) => {

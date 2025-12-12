@@ -79,12 +79,31 @@ export async function GET(req: NextRequest) {
         id: postid,
       },
       include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            profilePicture: true,
+          },
+        },
         options: {
           include: {
             votes: true,
           },
         },
-        comments: true, // Fetch all comments for this post
+        comments: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                username: true,
+                profilePicture: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -101,7 +120,7 @@ export async function GET(req: NextRequest) {
       parentId: number | null;
       replies: CommentNode[];
     }
-    
+
     // Helper function to recursively build nested replies
     const buildCommentTree = (comments: CommentNode[]): CommentNode[] => {
       const commentMap = new Map<number, CommentNode>();

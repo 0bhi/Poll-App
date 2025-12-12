@@ -38,28 +38,45 @@ export async function GET(req: NextRequest) {
       profilePicture: string | null;
     }
     
-    // Fetch actor details for each notification
-    const notificationsWithActors = await Promise.all(
-      notifications.map(async (notif) => {
-        let actors: Actor[] = [];
-        const n = notif as NotificationWithActorIds;
-        if (n.actorIds && n.actorIds.length > 0) {
-          actors = await prisma.user.findMany({
-            where: { id: { in: n.actorIds } },
-            select: {
-              id: true,
-              name: true,
-              username: true,
-              profilePicture: true,
-            },
-          });
-        }
-        return {
-          ...notif,
-          actors,
-        };
-      })
-    );
+    // Collect all unique actor IDs from all notifications
+    const allActorIds = new Set<number>();
+    notifications.forEach((notif) => {
+      const n = notif as NotificationWithActorIds;
+      if (n.actorIds && n.actorIds.length > 0) {
+        n.actorIds.forEach((id) => allActorIds.add(id));
+      }
+    });
+
+    // Fetch all actors in a single query
+    const actorsMap = new Map<number, Actor>();
+    if (allActorIds.size > 0) {
+      const actors = await prisma.user.findMany({
+        where: { id: { in: Array.from(allActorIds) } },
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          profilePicture: true,
+        },
+      });
+      actors.forEach((actor) => actorsMap.set(actor.id, actor));
+    }
+
+    // Map actors to each notification
+    const notificationsWithActors = notifications.map((notif) => {
+      const n = notif as NotificationWithActorIds;
+      const actors: Actor[] = [];
+      if (n.actorIds && n.actorIds.length > 0) {
+        n.actorIds.forEach((id) => {
+          const actor = actorsMap.get(id);
+          if (actor) actors.push(actor);
+        });
+      }
+      return {
+        ...notif,
+        actors,
+      };
+    });
       return successResponse(notificationsWithActors);
     } catch (error) {
       return handleError(error, req);

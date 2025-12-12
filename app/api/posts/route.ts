@@ -24,6 +24,14 @@ export async function GET(req: NextRequest) {
     interface FindManyArgs {
       orderBy: { createdAt: "desc" };
       include: {
+        user: {
+          select: {
+            id: true;
+            name: true;
+            username: true;
+            profilePicture: true;
+          };
+        };
         options: { include: { votes: true } };
       };
       take: number;
@@ -34,6 +42,14 @@ export async function GET(req: NextRequest) {
     const findManyArgs: FindManyArgs = {
       orderBy: { createdAt: "desc" },
       include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            profilePicture: true,
+          },
+        },
         options: { include: { votes: true } },
       },
       take,
