@@ -1,6 +1,29 @@
 // Socket event types
+export interface Message {
+  id: number;
+  content: string;
+  messageType: string;
+  isRead: boolean;
+  createdAt: string;
+  conversationId: number;
+  sender: {
+    id: number;
+    name: string;
+    username: string;
+    profilePicture: string;
+  };
+}
+
+export interface Conversation {
+  id: number;
+  participant1Id: number;
+  participant2Id: number;
+  updatedAt: string;
+  createdAt: string;
+}
+
 export interface ServerToClientEvents {
-  message: (message: any) => void;
+  message: (message: Message) => void;
   typing_start: (data: {
     conversationId: number;
     userId: number;
@@ -10,7 +33,7 @@ export interface ServerToClientEvents {
   message_read: (data: { messageId: number; conversationId: number }) => void;
   user_online: (userId: number) => void;
   user_offline: (userId: number) => void;
-  conversation_updated: (conversation: any) => void;
+  conversation_updated: (conversation: Conversation) => void;
 }
 
 export interface ClientToServerEvents {

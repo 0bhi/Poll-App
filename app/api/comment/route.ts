@@ -1,12 +1,12 @@
-import Prisma from "../../lib/db";
+import Prisma from "../../_lib/db";
 import { NextRequest, NextResponse } from "next/server";
-import { createCommentSchema } from "../../lib/schemas";
-import { validateBody } from "../../lib/validation";
-import { handleError } from "../../lib/errorHandler";
-import { NotFoundError } from "../../lib/errors";
-import { withAuth } from "../../lib/authMiddleware";
-import { withRateLimit, writeRateLimiter } from "../../lib/rateLimit";
-import { successResponse, errorResponse } from "../../lib/apiResponse";
+import { createCommentSchema } from "../../_lib/schemas";
+import { validateBody } from "../../_lib/validation";
+import { handleError } from "../../_lib/errorHandler";
+import { NotFoundError } from "../../_lib/errors";
+import { withAuth } from "../../_lib/authMiddleware";
+import { withRateLimit, writeRateLimiter } from "../../_lib/rateLimit";
+import { successResponse, errorResponse } from "../../_lib/apiResponse";
 
 export async function POST(req: NextRequest) {
   // Apply rate limiting

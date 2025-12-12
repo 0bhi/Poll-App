@@ -2,16 +2,23 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import axios from "axios";
+import { apiClient, ApiError } from "../_lib/apiClient";
 import Image from "next/image";
 import { useSession, signIn } from "next-auth/react";
-import Post, { PostSkeleton } from "../components/Post";
+import Post from "../_features/posts/Post";
+import { PostSkeleton } from "../_ui/PostSkeleton";
 import { FaUserPlus, FaUserCheck } from "react-icons/fa";
+
+interface PostOption {
+  id: number;
+  text: string;
+  votes?: Array<{ id: number }>;
+}
 
 interface PostType {
   id: string;
   text: string;
-  options: any;
+  options: PostOption[];
   user_id: string;
 }
 
@@ -50,16 +57,16 @@ const ProfilePage = () => {
     setError(null);
 
     try {
-      const res = await axios.get("/api/users/profile", {
+      const res = await apiClient.get<ProfileData>("/api/users/profile", {
         params: { username },
       });
-      const data: ProfileData = res.data.data;
+      const data = res.data;
       setProfile(data);
       setIsFollowing(data.isFollowing);
       setPosts(data.posts || []);
-    } catch (err: any) {
+    } catch (err) {
       const message =
-        err?.response?.data?.error || "Unable to load this profile.";
+        (err instanceof ApiError && err.message) || "Unable to load this profile.";
       setError(message);
     } finally {
       setLoading(false);
@@ -92,11 +99,14 @@ const ProfilePage = () => {
     setActionLoading(true);
 
     try {
-      const res = await axios.post("/api/users/follow", {
+      const res = await apiClient.post<{
+        isFollowing: boolean;
+        followersCount?: number;
+      }>("/api/users/follow", {
         target_user_id: profile.id,
         action: nextState ? "FOLLOW" : "UNFOLLOW",
       });
-      const data = res.data.data;
+      const data = res.data;
       setIsFollowing(data.isFollowing);
       setProfile((prev) =>
         prev

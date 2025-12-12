@@ -1,8 +1,9 @@
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import Prisma from "../lib/db";
+import Prisma from "./db";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import { logger } from "./logger";
 
 export const NEXT_AUTH_CONFIG = {
   providers: [
@@ -16,7 +17,7 @@ export const NEXT_AUTH_CONFIG = {
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials: any) {
+      async authorize(credentials: { email?: string; password?: string } | undefined) {
         if (!credentials) {
           throw new Error("Missing credentials");
         }
@@ -47,7 +48,7 @@ export const NEXT_AUTH_CONFIG = {
             email: user.email,
             username: user.username,
           };
-        } catch (error: any) {
+        } catch (error: unknown) {
           // Re-throw specific authentication errors
           if (error instanceof Error && (
             error.message === "No user found with the given email" ||
@@ -57,7 +58,7 @@ export const NEXT_AUTH_CONFIG = {
             throw error;
           }
           // For other errors, log and throw generic error
-          console.error(error);
+          logger.error("Authentication error", error);
           throw new Error("An unexpected error occurred during authentication");
         }
       },
@@ -65,7 +66,7 @@ export const NEXT_AUTH_CONFIG = {
   ],
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
-    async session({ session, token }: any) {
+    async session({ session, token }: { session: { user: { id?: string; name?: string; email?: string; username?: string; image?: string } }; token: { id?: string; name?: string; email?: string; username?: string; picture?: string } }) {
       session.user.id = token.id;
       session.user.name = token.name;
       session.user.email = token.email;
@@ -73,7 +74,7 @@ export const NEXT_AUTH_CONFIG = {
       session.user.image = token.picture;
       return session;
     },
-    async jwt({ token, user, profile, account }: any) {
+    async jwt({ token, user, profile, account }: { token: { id?: string; name?: string; email?: string; username?: string; picture?: string }; user?: { id: string; name: string; email: string; username: string; profilePicture?: string }; profile?: { email: string; name: string; picture?: string }; account?: { provider?: string } }) {
       if (user) {
         token.id = user.id;
         token.name = user.name;
@@ -93,7 +94,7 @@ export const NEXT_AUTH_CONFIG = {
       }
       return token;
     },
-    async signIn({ account, profile }: any) {
+    async signIn({ account, profile }: { account?: { provider?: string }; profile?: { email: string; name: string; picture?: string } }) {
       if (account?.provider === "google") {
         try {
           const username = profile.email.split("@")[0];
@@ -128,7 +129,7 @@ export const NEXT_AUTH_CONFIG = {
           });
           return true;
         } catch (error) {
-          console.error("Error saving Google profile:", error);
+          logger.error("Error saving Google profile", error);
           return false;
         }
       }

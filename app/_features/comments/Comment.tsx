@@ -1,12 +1,21 @@
-import axios from "axios";
+import { apiClient } from "../../_lib/apiClient";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
+import { logger } from "../../_lib/logger";
+
+interface CommentReply {
+  id: number;
+  text: string;
+  user_id: number;
+  replies?: CommentReply[];
+  createdAt?: string;
+}
 
 interface CommentProps {
   comment: string;
   index: number;
   userid: number;
-  replies?: any[];
+  replies?: CommentReply[];
   onReply?: (replyText: string, parentId: number) => void;
   commentId?: number;
 }
@@ -40,21 +49,25 @@ const Comment: React.FC<CommentProps & { level?: number }> = ({
   const fetchData = async () => {
     // Only fetch if userid is valid
     if (!userid) {
-      console.warn("userid is missing, skipping user fetch");
+      logger.warn("userid is missing, skipping user fetch");
       return;
     }
 
     try {
-      const res = await axios.get("/api/users/user", {
+      const res = await apiClient.get<{
+        profilePicture?: string;
+        name: string;
+        username: string;
+      }>("/api/users/user", {
         params: { user_id: String(userid) },
       });
-      if (res?.data?.data) {
-        setProfilePic(res.data.data.profilePicture || "");
-        setName(res.data.data.name || "");
-        setUsername(res.data.data.username || "");
+      if (res?.data) {
+        setProfilePic(res.data.profilePicture || "");
+        setName(res.data.name || "");
+        setUsername(res.data.username || "");
       }
     } catch (error) {
-      console.error("Error fetching user data:", error);
+      logger.error("Error fetching user data", error);
     }
   };
 

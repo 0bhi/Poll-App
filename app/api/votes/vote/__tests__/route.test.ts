@@ -1,8 +1,8 @@
 import { POST, GET, DELETE } from '../route'
 import { NextRequest } from 'next/server'
-import Prisma from '@/app/lib/db'
+import Prisma from '@/app/_lib/db'
 
-jest.mock('@/app/lib/db', () => ({
+jest.mock('@/app/_lib/db', () => ({
   __esModule: true,
   default: {
     vote: {

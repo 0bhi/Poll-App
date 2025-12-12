@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import Prisma from "@/app/lib/db";
+import Prisma from "@/app/_lib/db";
 import {
   getMessagesQuerySchema,
   createMessageSchema,
   updateMessageSchema,
-} from "@/app/lib/schemas";
-import { validateQuery, validateBody } from "@/app/lib/validation";
-import { handleError } from "@/app/lib/errorHandler";
-import { NotFoundError } from "@/app/lib/errors";
-import { withAuth } from "@/app/lib/authMiddleware";
-import { withRateLimit, writeRateLimiter } from "@/app/lib/rateLimit";
-import { successResponse, errorResponse } from "@/app/lib/apiResponse";
+} from "@/app/_lib/schemas";
+import { validateQuery, validateBody } from "@/app/_lib/validation";
+import { handleError } from "@/app/_lib/errorHandler";
+import { NotFoundError } from "@/app/_lib/errors";
+import { withAuth } from "@/app/_lib/authMiddleware";
+import { withRateLimit, writeRateLimiter } from "@/app/_lib/rateLimit";
+import { successResponse, errorResponse } from "@/app/_lib/apiResponse";
+import { logger } from "@/app/_lib/logger";
 
 export async function GET(req: NextRequest) {
   // Apply rate limiting
@@ -38,7 +39,25 @@ export async function GET(req: NextRequest) {
         throw new NotFoundError("Conversation or access denied");
       }
 
-      const findManyArgs: any = {
+      interface FindManyArgs {
+        where: { conversationId: number };
+        include: {
+          sender: {
+            select: {
+              id: true;
+              name: true;
+              username: true;
+              profilePicture: true;
+            };
+          };
+        };
+        orderBy: { createdAt: "desc" };
+        take: number;
+        skip?: number;
+        cursor?: { id: number };
+      }
+      
+      const findManyArgs: FindManyArgs = {
         where: {
           conversationId: conversation_id,
         },
@@ -175,7 +194,7 @@ export async function POST(req: NextRequest) {
         });
       } catch (error) {
         // Log error but don't fail the request - message is already saved
-        console.error("Error broadcasting message via socket:", error);
+        logger.error("Error broadcasting message via socket", error);
       }
 
       return successResponse(message);

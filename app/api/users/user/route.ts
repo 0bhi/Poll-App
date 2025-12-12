@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import Prisma from "@/app/lib/db";
-import { getUserQuerySchema, updateUserSchema } from "@/app/lib/schemas";
-import { validateBody, validateQuery } from "@/app/lib/validation";
-import { handleError } from "@/app/lib/errorHandler";
-import { NotFoundError } from "@/app/lib/errors";
-import { withRateLimit } from "@/app/lib/rateLimit";
-import { successResponse } from "@/app/lib/apiResponse";
-import { withAuth } from "@/app/lib/authMiddleware";
+import Prisma from "@/app/_lib/db";
+import { getUserQuerySchema, updateUserSchema } from "@/app/_lib/schemas";
+import { validateBody, validateQuery } from "@/app/_lib/validation";
+import { handleError } from "@/app/_lib/errorHandler";
+import { NotFoundError } from "@/app/_lib/errors";
+import { withRateLimit } from "@/app/_lib/rateLimit";
+import { successResponse } from "@/app/_lib/apiResponse";
+import { withAuth } from "@/app/_lib/authMiddleware";
 
 export async function GET(req: NextRequest) {
   // Apply rate limiting

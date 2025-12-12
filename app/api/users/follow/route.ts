@@ -1,12 +1,12 @@
 import { NextRequest } from "next/server";
-import Prisma from "@/app/lib/db";
-import { handleError } from "@/app/lib/errorHandler";
-import { withRateLimit } from "@/app/lib/rateLimit";
-import { withAuth } from "@/app/lib/authMiddleware";
-import { validateBody } from "@/app/lib/validation";
-import { followUserSchema } from "@/app/lib/schemas";
-import { ConflictError, NotFoundError } from "@/app/lib/errors";
-import { successResponse } from "@/app/lib/apiResponse";
+import Prisma from "@/app/_lib/db";
+import { handleError } from "@/app/_lib/errorHandler";
+import { withRateLimit } from "@/app/_lib/rateLimit";
+import { withAuth } from "@/app/_lib/authMiddleware";
+import { validateBody } from "@/app/_lib/validation";
+import { followUserSchema } from "@/app/_lib/schemas";
+import { ConflictError, NotFoundError } from "@/app/_lib/errors";
+import { successResponse } from "@/app/_lib/apiResponse";
 
 export async function POST(req: NextRequest) {
   const rateLimitResponse = await withRateLimit(req);

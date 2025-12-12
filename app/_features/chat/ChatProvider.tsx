@@ -2,7 +2,8 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { io, Socket } from "socket.io-client";
-import { ServerToClientEvents, ClientToServerEvents } from "@/app/lib/socket";
+import { ServerToClientEvents, ClientToServerEvents } from "@/app/_lib/socket";
+import { logger } from "../../_lib/logger";
 
 interface ChatContextType {
   socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
@@ -83,10 +84,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
       const newSocket = io(socketUrl);
 
       newSocket.on("connect", () => {
-        console.log("Connected to socket server");
+        logger.info("Connected to socket server");
         newSocket.emit("authenticate", {
           userId: currentUserId,
-          username: session.user.username || (session.user as any).name || "",
+          username: session.user.username || (session.user as { name?: string }).name || "",
         });
       });
 
@@ -186,7 +187,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
       // API returns { data: conversations[] }, so access data.data
       setConversations(data.data || []);
     } catch (error) {
-      console.error("Error fetching conversations:", error);
+      logger.error("Error fetching conversations", error);
       setConversations([]);
     }
   };
@@ -200,7 +201,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
       // API returns { data: messages[] }, so access data.data
       setMessages(data.data || []);
     } catch (error) {
-      console.error("Error fetching messages:", error);
+      logger.error("Error fetching messages", error);
       setMessages([]);
     }
   };
@@ -236,7 +237,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
         conversationId: currentConversation.id,
       });
     } catch (error) {
-      console.error("Error marking message as read:", error);
+      logger.error("Error marking message as read", error);
     }
   };
 

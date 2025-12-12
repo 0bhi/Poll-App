@@ -1,9 +1,9 @@
-import prisma from "@/app/lib/db";
+import prisma from "@/app/_lib/db";
 import { NextRequest } from "next/server";
-import { handleError } from "@/app/lib/errorHandler";
-import { withAuth } from "@/app/lib/authMiddleware";
-import { withRateLimit } from "@/app/lib/rateLimit";
-import { successResponse } from "@/app/lib/apiResponse";
+import { handleError } from "@/app/_lib/errorHandler";
+import { withAuth } from "@/app/_lib/authMiddleware";
+import { withRateLimit } from "@/app/_lib/rateLimit";
+import { successResponse } from "@/app/_lib/apiResponse";
 
 export async function GET(req: NextRequest) {
   // Apply rate limiting
@@ -22,11 +22,27 @@ export async function GET(req: NextRequest) {
         createdAt: "desc",
       },
     });
+    interface NotificationWithActorIds {
+      id: number;
+      text: string;
+      user_id: number;
+      type: string;
+      createdAt: Date;
+      actorIds?: number[];
+    }
+    
+    interface Actor {
+      id: number;
+      name: string;
+      username: string;
+      profilePicture: string | null;
+    }
+    
     // Fetch actor details for each notification
     const notificationsWithActors = await Promise.all(
       notifications.map(async (notif) => {
-        let actors: any[] = [];
-        const n = notif as any; // cast to any to access actorIds
+        let actors: Actor[] = [];
+        const n = notif as NotificationWithActorIds;
         if (n.actorIds && n.actorIds.length > 0) {
           actors = await prisma.user.findMany({
             where: { id: { in: n.actorIds } },

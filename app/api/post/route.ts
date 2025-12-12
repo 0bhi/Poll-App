@@ -1,13 +1,13 @@
 import { NextRequest } from "next/server";
-import Prisma from "../../lib/db";
+import Prisma from "../../_lib/db";
 import { NextResponse } from "next/server";
-import { createPostSchema, getPostQuerySchema } from "../../lib/schemas";
-import { validateBody, validateQuery } from "../../lib/validation";
-import { handleError } from "../../lib/errorHandler";
-import { NotFoundError, ValidationError } from "../../lib/errors";
-import { withAuth } from "../../lib/authMiddleware";
-import { withRateLimit, writeRateLimiter } from "../../lib/rateLimit";
-import { successResponse, errorResponse } from "../../lib/apiResponse";
+import { createPostSchema, getPostQuerySchema } from "../../_lib/schemas";
+import { validateBody, validateQuery } from "../../_lib/validation";
+import { handleError } from "../../_lib/errorHandler";
+import { NotFoundError, ValidationError } from "../../_lib/errors";
+import { withAuth } from "../../_lib/authMiddleware";
+import { withRateLimit, writeRateLimiter } from "../../_lib/rateLimit";
+import { successResponse, errorResponse } from "../../_lib/apiResponse";
 
 export async function POST(req: NextRequest) {
   // Apply rate limiting
@@ -93,10 +93,19 @@ export async function GET(req: NextRequest) {
     }
 
     // Build comment tree: separate top-level comments from replies
+    interface CommentNode {
+      id: number;
+      text: string;
+      user_id: number;
+      createdAt: string;
+      parentId: number | null;
+      replies: CommentNode[];
+    }
+    
     // Helper function to recursively build nested replies
-    const buildCommentTree = (comments: any[]): any[] => {
-      const commentMap = new Map<number, any>();
-      const rootComments: any[] = [];
+    const buildCommentTree = (comments: CommentNode[]): CommentNode[] => {
+      const commentMap = new Map<number, CommentNode>();
+      const rootComments: CommentNode[] = [];
 
       // First pass: create a map of all comments with empty replies array
       comments.forEach((comment) => {
@@ -125,10 +134,10 @@ export async function GET(req: NextRequest) {
       });
 
       // Recursively sort replies for each comment
-      const sortReplies = (comment: any) => {
+      const sortReplies = (comment: CommentNode) => {
         if (comment.replies && comment.replies.length > 0) {
           comment.replies.sort(
-            (a: any, b: any) =>
+            (a: CommentNode, b: CommentNode) =>
               new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           );
           comment.replies.forEach(sortReplies);

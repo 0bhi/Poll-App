@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import axios from "axios";
+import { apiClient } from "../../_lib/apiClient";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { logger } from "../../_lib/logger";
 
 const Signup = () => {
   const router = useRouter();
@@ -15,14 +16,13 @@ const Signup = () => {
 
   const handleSubmit = async () => {
     try {
-      let res = await axios.post("/api/signup", {
+      await apiClient.post("/api/signup", {
         name: name,
         username: username,
         email: email,
         password: password,
       });
-      console.log(res);
-      if (res) {
+      {
         const signInResponse = await signIn("credentials", {
           email: email,
           password: password,
@@ -31,11 +31,11 @@ const Signup = () => {
         if (signInResponse) {
           router.push("/");
         } else {
-          console.log("Sign-in error:", signInResponse);
+          logger.warn("Sign-in error after signup", { signInResponse });
         }
       }
     } catch (error) {
-      console.log(error);
+      logger.error("Error during signup", error);
     }
   };
 

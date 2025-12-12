@@ -1,53 +1,69 @@
 "use client";
-import Editbox from "../app/components/Editbox";
-import { useState, useEffect } from "react";
-import axios from "axios";
-import Post, { PostSkeleton } from "../app/components/Post";
+import Editbox from "./_features/posts/Editbox";
+import { useState } from "react";
+import Post from "./_features/posts/Post";
+import { PostSkeleton } from "./_ui/PostSkeleton";
 import InfiniteScroll from "react-infinite-scroll-component";
+import { FaPlus } from "react-icons/fa";
+import { useInfiniteScroll, useIntersectionObserver } from "./_hooks";
+
+interface PostOption {
+  id: number;
+  text: string;
+  votes?: Array<{ id: number }>;
+}
 
 interface PostType {
   id: string;
   text: string;
-  options: any;
+  options: PostOption[];
   user_id: string;
 }
 
 export default function Feed() {
-  const [posts, setPosts] = useState<PostType[]>([]);
-  const [cursor, setCursor] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [composerRef, isComposerVisible] = useIntersectionObserver({
+    threshold: 0.1,
+  });
 
-  const fetchData = async () => {
-    setLoading(true);
-    const res = await axios.get("/api/posts", {
-      params: {
-        take: 10,
-        cursor,
-      },
-    });
+  const {
+    items: rawPosts,
+    loading,
+    hasMore,
+    loadMore,
+    refetch,
+  } = useInfiniteScroll<any>({
+    endpoint: "/api/posts",
+    take: 10,
+  });
 
-    const newPosts = res.data.data || [];
-    if (cursor) {
-      setPosts((prev) => [...prev, ...newPosts]);
-    } else {
-      setPosts(newPosts);
-    }
-    setCursor(res.data.meta?.nextCursor || null);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Transform posts to match PostType interface (convert id and user_id to strings)
+  const posts: PostType[] = rawPosts.map((post: any) => ({
+    ...post,
+    id: String(post.id),
+    user_id: String(post.user_id),
+  }));
 
   const handleAddPost = (newPost: PostType) => {
-    setPosts((prev) => [newPost, ...prev]);
+    // Refetch to show new post at top
+    // Note: In a real app, you might want to add it optimistically
+    refetch();
+  };
+
+  const scrollToComposer = () => {
+    if (composerRef.current) {
+      composerRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
   };
 
   return (
-    <div className="h-full overflow-y-auto scrollbar-hide pb-20 md:pb-0">
+    <div className="h-full overflow-y-auto scrollbar-hide pb-28 md:pb-0 relative">
       <div className="max-w-4xl mx-auto px-4 md:px-6">
-        <Editbox onPostCreated={handleAddPost} />
+        <div ref={composerRef}>
+          <Editbox onPostCreated={handleAddPost} />
+        </div>
         {loading && posts.length === 0 ? (
           <div className="space-y-4">
             <PostSkeleton />
@@ -57,8 +73,8 @@ export default function Feed() {
         ) : (
           <InfiniteScroll
             dataLength={posts.length}
-            next={() => fetchData()}
-            hasMore={!!cursor}
+            next={loadMore}
+            hasMore={hasMore}
             loader={
               <div className="space-y-4 mt-4">
                 <PostSkeleton />
@@ -78,6 +94,17 @@ export default function Feed() {
           </InfiniteScroll>
         )}
       </div>
+
+      {/* Mobile floating composer shortcut */}
+      {!isComposerVisible && (
+        <button
+          onClick={scrollToComposer}
+          className="md:hidden fixed bottom-20 right-4 z-40 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-xl shadow-blue-500/30 w-12 h-12 flex items-center justify-center active:scale-95 hover:scale-105 transition-transform mobile-safe-area"
+          aria-label="Create a new poll"
+        >
+          <FaPlus className="text-base" />
+        </button>
+      )}
     </div>
   );
 }

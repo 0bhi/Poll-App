@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { useSession, signIn } from "next-auth/react";
 import { FaComments } from "react-icons/fa";
-import ChatSidebar from "../components/chat/ChatSidebar";
-import ChatWindow from "../components/chat/ChatWindow";
-import { useChat } from "../components/chat/ChatProvider";
+import ChatSidebar from "../_features/chat/ChatSidebar";
+import ChatWindow from "../_features/chat/ChatWindow";
+import { useChat } from "../_features/chat/ChatProvider";
 
 export default function MessagesPage() {
   const { status } = useSession();

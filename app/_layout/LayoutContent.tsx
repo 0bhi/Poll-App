@@ -2,9 +2,19 @@
 
 import Homebar from "./Homebar";
 import Notificationsbar from "./Notificationsbar";
-import { usePathname } from "next/navigation";
-import { useTheme } from "./providers";
-import { FaSun, FaMoon, FaBars, FaTimes, FaBell } from "react-icons/fa";
+import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "../_providers/providers";
+import {
+  FaSun,
+  FaMoon,
+  FaBars,
+  FaTimes,
+  FaBell,
+  FaHome,
+  FaSearch,
+  FaEnvelope,
+  FaCog,
+} from "react-icons/fa";
 import { useState, useEffect } from "react";
 
 export default function LayoutContent({
@@ -13,6 +23,7 @@ export default function LayoutContent({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -45,7 +56,7 @@ export default function LayoutContent({
   return (
     <div className="flex h-screen overflow-hidden bg-gradient-to-b from-gray-900 to-gray-800">
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-gray-900/95 backdrop-blur-sm border-b border-gray-700">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-gray-900/95 backdrop-blur-sm border-b border-gray-700 mobile-safe-area">
         <div className="flex items-center justify-between px-4 py-3">
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -79,7 +90,7 @@ export default function LayoutContent({
           onClick={() => setIsMobileMenuOpen(false)}
         >
           <div
-            className="fixed left-0 top-0 h-full w-80 max-w-[85vw] bg-gray-900 shadow-xl"
+            className="fixed left-0 top-0 h-full w-80 max-w-[85vw] bg-gray-900 shadow-xl mobile-safe-area"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="pt-16">
@@ -96,7 +107,7 @@ export default function LayoutContent({
           onClick={() => setIsNotificationsOpen(false)}
         >
           <div
-            className="fixed right-0 top-0 h-full w-80 max-w-[85vw] bg-gray-900 shadow-xl"
+            className="fixed right-0 top-0 h-full w-80 max-w-[85vw] bg-gray-900 shadow-xl mobile-safe-area"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="pt-16">
@@ -113,7 +124,11 @@ export default function LayoutContent({
 
       {/* Main Content */}
       <div className="flex-1 md:w-1/2 bg-gradient-to-b from-gray-900 to-gray-800 overflow-hidden">
-        <div className={`h-full ${pathname === "/messages" ? "pt-0" : "pt-16 md:pt-0"}`}>
+        <div
+          className={`h-full ${
+            pathname === "/messages" ? "pt-0" : "pt-16 md:pt-0"
+          } pb-16 md:pb-0`}
+        >
           {children}
         </div>
       </div>
@@ -122,6 +137,43 @@ export default function LayoutContent({
       <div className="hidden md:block w-1/4 bg-gradient-to-b from-gray-900 to-gray-800">
         <Notificationsbar />
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gray-900/95 backdrop-blur-sm border-t border-gray-700 mobile-safe-area">
+        <div className="grid grid-cols-4 text-white">
+          {[
+            { href: "/", label: "Home", Icon: FaHome },
+            { href: "/search", label: "Search", Icon: FaSearch },
+            { href: "/messages", label: "Messages", Icon: FaEnvelope },
+            { href: "/settings", label: "Settings", Icon: FaCog },
+          ].map((item) => {
+            const active = pathname === item.href;
+            return (
+              <button
+                key={item.href}
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsNotificationsOpen(false);
+                  if (typeof window !== "undefined") {
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }
+                  if (pathname !== item.href) {
+                    router.push(item.href);
+                  }
+                }}
+                className={`flex flex-col items-center justify-center py-3 gap-1 text-xs font-semibold transition-colors ${
+                  active ? "text-blue-400" : "text-gray-300"
+                }`}
+                aria-label={item.label}
+                aria-current={active ? "page" : undefined}
+              >
+                <item.Icon className="text-lg" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Providers } from "./components/providers";
-import { ChatProvider } from "./components/chat/ChatProvider";
-import LayoutContent from "./components/LayoutContent";
+import { Providers } from "./_providers/providers";
+import { ChatProvider } from "./_features/chat/ChatProvider";
+import LayoutContent from "./_layout/LayoutContent";
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -31,6 +32,7 @@ export default function RootLayout({
             <LayoutContent>{children}</LayoutContent>
           </ChatProvider>
         </Providers>
+        <Toaster position="top-center" richColors />
       </body>
     </html>
   );

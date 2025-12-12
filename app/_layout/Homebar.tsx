@@ -30,7 +30,7 @@ const homeBarContents = {
 };
 
 const Homebar = () => {
-  const session: any = useSession();
+  const session = useSession();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -94,7 +94,7 @@ const Homebar = () => {
             </div>
             <div className="flex-1" />
             {/* Floating action for mobile: sign out */}
-            <div className="md:hidden mt-6 sticky bottom-4 flex justify-end z-10">
+            <div className="md:hidden mt-4 sticky bottom-8 flex justify-end z-10">
               <button
                 className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-white shadow-lg transition-all hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-400/60"
                 onClick={() => signOut()}

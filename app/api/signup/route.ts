@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import Prisma from "../../lib/db";
+import Prisma from "../../_lib/db";
 import bcrypt from "bcrypt";
-import { signupSchema } from "../../lib/schemas";
-import { validateBody } from "../../lib/validation";
-import { handleError } from "../../lib/errorHandler";
-import { ConflictError } from "../../lib/errors";
-import { withRateLimit, authRateLimiter } from "../../lib/rateLimit";
-import { successResponse } from "../../lib/apiResponse";
+import { signupSchema } from "../../_lib/schemas";
+import { validateBody } from "../../_lib/validation";
+import { handleError } from "../../_lib/errorHandler";
+import { ConflictError } from "../../_lib/errors";
+import { withRateLimit, authRateLimiter } from "../../_lib/rateLimit";
+import { successResponse } from "../../_lib/apiResponse";
 
 export const POST = async (req: NextRequest) => {
   // Apply stricter rate limiting for signup

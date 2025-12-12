@@ -1,6 +1,6 @@
 "use client";
 import { useSession } from "next-auth/react";
-import axios from "axios";
+import { apiClient } from "../_lib/apiClient";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 
@@ -104,7 +104,7 @@ export function NotificationSkeleton() {
 }
 
 export default function Notificationsbar() {
-  const session: any = useSession();
+  const session = useSession();
   const [notifs, setNotifs] = useState<NotificationType[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -118,8 +118,8 @@ export default function Notificationsbar() {
       setLoading(true);
       try {
         // No need to pass user_id - API uses authenticated user from session
-        const res = await axios.get("/api/notifications");
-        setNotifs(Array.isArray(res.data.data) ? res.data.data : []);
+        const res = await apiClient.get<NotificationType[]>("/api/notifications");
+        setNotifs(Array.isArray(res.data) ? res.data : []);
       } catch (error) {
         setNotifs([]);
       } finally {

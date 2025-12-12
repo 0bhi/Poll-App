@@ -1,10 +1,10 @@
-import Prisma from "../../lib/db";
+import Prisma from "../../_lib/db";
 import { NextResponse, NextRequest } from "next/server";
-import { getPostsQuerySchema } from "../../lib/schemas";
-import { validateQuery } from "../../lib/validation";
-import { handleError } from "../../lib/errorHandler";
-import { withRateLimit } from "../../lib/rateLimit";
-import { successResponse } from "../../lib/apiResponse";
+import { getPostsQuerySchema } from "../../_lib/schemas";
+import { validateQuery } from "../../_lib/validation";
+import { handleError } from "../../_lib/errorHandler";
+import { withRateLimit } from "../../_lib/rateLimit";
+import { successResponse } from "../../_lib/apiResponse";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,17 @@ export async function GET(req: NextRequest) {
 
     const { take, cursor } = validation.data;
 
-    const findManyArgs: any = {
+    interface FindManyArgs {
+      orderBy: { createdAt: "desc" };
+      include: {
+        options: { include: { votes: true } };
+      };
+      take: number;
+      skip?: number;
+      cursor?: { id: number };
+    }
+    
+    const findManyArgs: FindManyArgs = {
       orderBy: { createdAt: "desc" },
       include: {
         options: { include: { votes: true } },
@@ -31,13 +41,13 @@ export async function GET(req: NextRequest) {
 
     if (cursor) {
       findManyArgs.skip = 1;
-      findManyArgs.cursor = { id: cursor };
+      findManyArgs.cursor = { id: typeof cursor === 'string' ? parseInt(cursor, 10) : cursor };
     }
 
     const posts = await Prisma.post.findMany(findManyArgs);
 
     const nextCursor =
-      posts.length === take ? posts[posts.length - 1].id : null;
+      posts.length === take ? String(posts[posts.length - 1].id) : null;
 
     return successResponse(posts, { nextCursor });
   } catch (error) {

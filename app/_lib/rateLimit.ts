@@ -2,6 +2,7 @@ import { Ratelimit, type Duration } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { NextRequest, NextResponse } from "next/server";
 import { errorResponse } from "./apiResponse";
+import { logger } from "./logger";
 
 // Defaults to enabled; set RATE_LIMIT_ENABLED=false for builds/tests or to bypass
 const rateLimitEnabled =
@@ -114,7 +115,7 @@ export async function withRateLimit(
     return null; // No rate limit exceeded, continue
   } catch (error) {
     // If rate limiting fails, log but don't block the request
-    console.error("Rate limiting error:", error);
+    logger.error("Rate limiting error", error);
     return null;
   }
 }

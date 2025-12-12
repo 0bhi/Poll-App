@@ -1,12 +1,12 @@
 import { NextRequest } from "next/server";
-import Prisma from "@/app/lib/db";
-import { handleError } from "@/app/lib/errorHandler";
-import { withRateLimit } from "@/app/lib/rateLimit";
-import { successResponse } from "@/app/lib/apiResponse";
-import { validateQuery } from "@/app/lib/validation";
-import { getUserProfileQuerySchema } from "@/app/lib/schemas";
-import { NotFoundError } from "@/app/lib/errors";
-import { getAuthUserId } from "@/app/lib/authMiddleware";
+import Prisma from "@/app/_lib/db";
+import { handleError } from "@/app/_lib/errorHandler";
+import { withRateLimit } from "@/app/_lib/rateLimit";
+import { successResponse } from "@/app/_lib/apiResponse";
+import { validateQuery } from "@/app/_lib/validation";
+import { getUserProfileQuerySchema } from "@/app/_lib/schemas";
+import { NotFoundError } from "@/app/_lib/errors";
+import { getAuthUserId } from "@/app/_lib/authMiddleware";
 
 export async function GET(req: NextRequest) {
   const rateLimitResponse = await withRateLimit(req);

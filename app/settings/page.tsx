@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useSession, signIn } from "next-auth/react";
-import axios from "axios";
+import { apiClient } from "../_lib/apiClient";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import LoadingSpinner from "@/app/components/LoadingSpinner";
+import LoadingSpinner from "@/app/_ui/LoadingSpinner";
 
 const SettingsPage = () => {
   const { data: session, status } = useSession();
@@ -19,10 +19,14 @@ const SettingsPage = () => {
   const loadProfile = async () => {
     if (!session?.user?.id) return;
     try {
-      const res = await axios.get("/api/users/user", {
+      const res = await apiClient.get<{
+        name: string;
+        bio: string;
+        profilePicture: string;
+      }>("/api/users/user", {
         params: { user_id: session.user.id },
       });
-      const data = res.data.data;
+      const data = res.data;
       setName(data.name || "");
       setBio(data.bio || "");
       setProfilePicture(
@@ -47,7 +51,7 @@ const SettingsPage = () => {
     setSaving(true);
     setMessage(null);
     try {
-      await axios.put("/api/users/user", {
+      await apiClient.put("/api/users/user", {
         name,
         bio,
         profilePicture,

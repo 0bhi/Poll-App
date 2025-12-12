@@ -4,7 +4,9 @@ import { useSession } from 'next-auth/react';
 import { useChat } from './ChatProvider';
 import Image from 'next/image';
 import { FaSearch, FaTimes, FaUserPlus } from 'react-icons/fa';
-import axios from 'axios';
+import { apiClient, ApiError } from '../../_lib/apiClient';
+import { toast } from 'sonner';
+import { logger } from '../../_lib/logger';
 
 interface User {
   id: number;
@@ -35,16 +37,16 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
 
     setLoading(true);
     try {
-      const response = await axios.get('/api/users/search', {
+      const response = await apiClient.get<User[]>('/api/users/search', {
         params: {
           q: query,
           current_user_id: session.user.id,
         },
       });
-      // API returns { data: users[] }, so access response.data.data
-      setUsers(response.data?.data || []);
+      // API returns { data: users[] }
+      setUsers(response.data || []);
     } catch (error) {
-      console.error('Error searching users:', error);
+      logger.error('Error searching users', error);
       setUsers([]);
     } finally {
       setLoading(false);
@@ -68,13 +70,21 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
 
     setLoading(true);
     try {
-      const response = await axios.post('/api/conversations', {
+      const response = await apiClient.post<{
+        id: number;
+        participant1Id: number;
+        participant2Id: number;
+        participant1?: User;
+        participant2?: User;
+        updatedAt?: string;
+        createdAt?: string;
+      }>('/api/conversations', {
         participant1Id: parseInt(session.user.id),
         participant2Id: user.id,
       });
 
-      // API returns { data: conversation }, so access response.data.data
-      const conversation = response.data?.data;
+      // API returns { data: conversation }
+      const conversation = response.data;
       
       if (!conversation) {
         throw new Error('No conversation data received');
@@ -113,23 +123,20 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
         if (refreshConversations) {
           await refreshConversations();
         }
-    } catch (error: any) {
-      console.error('Error starting conversation:', error);
-      console.error('Error response:', error.response?.data);
-      console.error('Error status:', error.response?.status);
+        toast.success('Conversation started successfully!');
+    } catch (error: unknown) {
+      logger.error('Error starting conversation', error);
       
       // Show error message to user
       let errorMessage = 'Failed to start conversation. Please try again.';
       
-      if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
+      if (error instanceof ApiError) {
+        errorMessage = error.message;
+      } else if (error instanceof Error) {
         errorMessage = error.message;
       }
       
-      alert(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -1,8 +1,8 @@
-import Prisma from "@/app/lib/db";
+import Prisma from "@/app/_lib/db";
 import { NextResponse, NextRequest } from "next/server";
-import { handleError } from "@/app/lib/errorHandler";
-import { withRateLimit } from "@/app/lib/rateLimit";
-import { successResponse } from "@/app/lib/apiResponse";
+import { handleError } from "@/app/_lib/errorHandler";
+import { withRateLimit } from "@/app/_lib/rateLimit";
+import { successResponse } from "@/app/_lib/apiResponse";
 
 export async function GET(req: NextRequest) {
   // Apply rate limiting

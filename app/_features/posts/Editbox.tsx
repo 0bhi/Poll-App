@@ -1,18 +1,26 @@
 import React, { useState } from "react";
-import {
-  FaImage,
-  FaVideo,
-  FaEllipsisH,
-  FaLink,
-  FaPlus,
-  FaRegPaperPlane,
-} from "react-icons/fa";
+import { FaRegPaperPlane } from "react-icons/fa";
 import { useSession } from "next-auth/react";
-import axios from "axios";
+import { apiClient } from "../../_lib/apiClient";
+import { toast } from "sonner";
+import { logger } from "../../_lib/logger";
+import MediaToolbar from "./MediaToolbar";
+import PollOptionInput from "./PollOptionInput";
 
-const BLUE_BG = "bg-blue-700"; // You can adjust this shade as needed
+interface PostOption {
+  id: number;
+  text: string;
+  votes?: Array<{ id: number }>;
+}
 
-const Editbox = ({ onPostCreated }: { onPostCreated: (post: any) => void }) => {
+interface PostData {
+  id: string;
+  text: string;
+  options: PostOption[];
+  user_id: string;
+}
+
+const Editbox = ({ onPostCreated }: { onPostCreated: (post: PostData) => void }) => {
   const { data: session } = useSession();
   const [text, setText] = useState("");
   const [option1, setOption1] = useState("");
@@ -26,13 +34,13 @@ const Editbox = ({ onPostCreated }: { onPostCreated: (post: any) => void }) => {
 
     // Check if user is authenticated
     if (!session?.user?.id) {
-      alert("Please sign in to create a poll");
+      toast.error("Please sign in to create a poll");
       return;
     }
 
     // Validate form data
     if (!text.trim()) {
-      alert("Please enter a question for your poll");
+      toast.error("Please enter a question for your poll");
       return;
     }
 
@@ -40,20 +48,20 @@ const Editbox = ({ onPostCreated }: { onPostCreated: (post: any) => void }) => {
       opt.trim()
     );
     if (options.length < 2) {
-      alert("Please enter at least 2 options for your poll");
+      toast.error("Please enter at least 2 options for your poll");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const response = await axios.post("/api/post", {
+      const response = await apiClient.post<PostData>("/api/post", {
         text: text.trim(),
         options: options,
         user_id: session.user.id,
       });
 
-      if (response.data?.data) {
+      if (response.data) {
         // Clear form
         setText("");
         setOption1("");
@@ -62,7 +70,7 @@ const Editbox = ({ onPostCreated }: { onPostCreated: (post: any) => void }) => {
         setOption4("");
 
         // Extract the post data and format it to match the expected structure
-        const postData = response.data.data;
+        const postData = response.data;
         const formattedPost = {
           id: String(postData.id),
           text: postData.text,
@@ -72,10 +80,11 @@ const Editbox = ({ onPostCreated }: { onPostCreated: (post: any) => void }) => {
 
         // Call the callback to add the new post to the feed
         onPostCreated(formattedPost);
+        toast.success("Poll created successfully!");
       }
     } catch (error) {
-      console.error("Error creating poll:", error);
-      alert("Failed to create poll. Please try again.");
+      logger.error("Error creating poll", error);
+      toast.error("Failed to create poll. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -108,63 +117,30 @@ const Editbox = ({ onPostCreated }: { onPostCreated: (post: any) => void }) => {
       </div>
 
       {/* Media buttons */}
-      <div className="flex gap-2 md:gap-3 items-center mb-2 w-full relative z-10">
-        <button
-          type="button"
-          className="rounded-full border-2 border-white/30 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-lg md:text-xl hover:bg-white/20 hover:scale-110 transition-all duration-300 backdrop-blur-sm"
-          tabIndex={-1}
-        >
-          <FaImage />
-        </button>
-        <button
-          type="button"
-          className="rounded-full border-2 border-white/30 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-lg md:text-xl hover:bg-white/20 hover:scale-110 transition-all duration-300 backdrop-blur-sm"
-          tabIndex={-1}
-        >
-          <FaVideo />
-        </button>
-        <button
-          type="button"
-          className="rounded-full border-2 border-white/30 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-lg md:text-xl hover:bg-white/20 hover:scale-110 transition-all duration-300 backdrop-blur-sm"
-          tabIndex={-1}
-        >
-          <FaEllipsisH />
-        </button>
-        <button
-          type="button"
-          className="rounded-full border-2 border-white/30 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-lg md:text-xl hover:bg-white/20 hover:scale-110 transition-all duration-300 backdrop-blur-sm ml-auto"
-          tabIndex={-1}
-        >
-          <FaLink />
-        </button>
-      </div>
+      <MediaToolbar />
 
       {/* Poll options - responsive grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mt-2 relative z-10">
-        {[option1, option2, option3, option4].map((opt, idx) => (
-          <div
-            key={idx}
-            className="flex items-center bg-white/10 backdrop-blur-sm rounded-xl px-3 md:px-4 py-2 md:py-3 gap-2 md:gap-3 text-sm md:text-base shadow-lg border border-white/20 hover:bg-white/15 transition-all duration-300"
-          >
-            <FaPlus className="text-white/70 mr-1 flex-shrink-0" />
-            <input
-              className="flex-1 bg-transparent outline-none border-none text-white placeholder-white/50 text-sm md:text-base h-8 font-medium min-w-0"
-              placeholder={`Option ${idx + 1}`}
-              value={opt}
-              onChange={(e) => {
-                if (idx === 0) setOption1(e.target.value);
-                else if (idx === 1) setOption2(e.target.value);
-                else if (idx === 2) setOption3(e.target.value);
-                else setOption4(e.target.value);
-              }}
-              maxLength={60}
-            />
-            <div className="flex gap-1 md:gap-2 flex-shrink-0">
-              <FaImage className="text-white/50 hover:text-white/80 transition-colors cursor-pointer text-sm md:text-base" />
-              <FaVideo className="text-white/50 hover:text-white/80 transition-colors cursor-pointer text-sm md:text-base" />
-            </div>
-          </div>
-        ))}
+        <PollOptionInput
+          value={option1}
+          index={0}
+          onChange={setOption1}
+        />
+        <PollOptionInput
+          value={option2}
+          index={1}
+          onChange={setOption2}
+        />
+        <PollOptionInput
+          value={option3}
+          index={2}
+          onChange={setOption3}
+        />
+        <PollOptionInput
+          value={option4}
+          index={3}
+          onChange={setOption4}
+        />
       </div>
 
       {/* Post button */}

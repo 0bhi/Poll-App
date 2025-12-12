@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import Prisma from "@/app/lib/db";
-import { getConversationsQuerySchema, createConversationSchema } from "@/app/lib/schemas";
-import { validateQuery, validateBody } from "@/app/lib/validation";
-import { handleError } from "@/app/lib/errorHandler";
-import { withAuth } from "@/app/lib/authMiddleware";
-import { withRateLimit, writeRateLimiter } from "@/app/lib/rateLimit";
-import { successResponse, errorResponse } from "@/app/lib/apiResponse";
+import Prisma from "@/app/_lib/db";
+import { getConversationsQuerySchema, createConversationSchema } from "@/app/_lib/schemas";
+import { validateQuery, validateBody } from "@/app/_lib/validation";
+import { handleError } from "@/app/_lib/errorHandler";
+import { withAuth } from "@/app/_lib/authMiddleware";
+import { withRateLimit, writeRateLimiter } from "@/app/_lib/rateLimit";
+import { successResponse, errorResponse } from "@/app/_lib/apiResponse";
 
 export async function GET(req: NextRequest) {
   // Apply rate limiting

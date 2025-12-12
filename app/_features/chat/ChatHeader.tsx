@@ -4,6 +4,21 @@ import Image from "next/image";
 import { FaCircle, FaEllipsisV, FaArrowLeft } from "react-icons/fa";
 import { useChat } from "./ChatProvider";
 
+interface Message {
+  id: number;
+  content: string;
+  messageType: string;
+  isRead: boolean;
+  createdAt: string;
+  conversationId: number;
+  sender: {
+    id: number;
+    name: string;
+    username: string;
+    profilePicture: string;
+  };
+}
+
 interface Conversation {
   id: number;
   otherUser: {
@@ -12,7 +27,7 @@ interface Conversation {
     username: string;
     profilePicture: string;
   };
-  lastMessage: any;
+  lastMessage: Message | null;
   unreadCount: number;
   updatedAt: string;
 }
